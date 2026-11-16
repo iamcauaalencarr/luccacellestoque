@@ -732,14 +732,14 @@ export function InventoryView({
                         </div>
                       </div>
                     ) : (
-                      <div className="w-full flex items-center justify-between gap-1.5">
-                        <div className="flex items-center gap-1 shrink-0 overflow-x-auto">
+                      <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex items-center justify-between sm:justify-start gap-1 w-full sm:w-auto min-w-0">
                           <button
                             type="button"
                             onClick={() => onPrintLabel(device)}
                             aria-label={`Etiqueta NIIMBOT de ${device.model}`}
                             title="Etiqueta NIIMBOT"
-                            className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-[#D4AF37] hover:text-[#E5C158] transition-colors active:scale-95"
+                            className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-[#D4AF37] hover:text-[#E5C158] transition-colors active:scale-95"
                           >
                             <Printer className="w-4 h-4" />
                           </button>
@@ -749,7 +749,7 @@ export function InventoryView({
                             onClick={() => handleCopyQuote(device)}
                             aria-label={`Copiar ficha de ${device.model}`}
                             title="Copiar ficha para WhatsApp"
-                            className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
+                            className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
                           >
                             {isCopied ? (
                               <Check className="w-4 h-4 text-emerald-400" />
@@ -763,7 +763,7 @@ export function InventoryView({
                             onClick={() => onReserveDevice(device)}
                             aria-label={`Reservar ${device.model}`}
                             title="Reservar aparelho / sinal"
-                            className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-[#D4AF37] transition-colors active:scale-95"
+                            className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-[#D4AF37] transition-colors active:scale-95"
                           >
                             <Bookmark className="w-4 h-4" />
                           </button>
@@ -775,7 +775,7 @@ export function InventoryView({
                                 onClick={() => onDuplicateDevice(device)}
                                 aria-label={`Duplicar ${device.model}`}
                                 title="Duplicar aparelho"
-                                className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
+                                className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
                               >
                                 <CopyPlus className="w-4 h-4" />
                               </button>
@@ -784,7 +784,7 @@ export function InventoryView({
                                 onClick={() => onEditDevice(device)}
                                 aria-label={`Editar ${device.model}`}
                                 title="Editar aparelho"
-                                className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
+                                className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-white transition-colors active:scale-95"
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
@@ -793,7 +793,7 @@ export function InventoryView({
                                 onClick={() => setConfirmDeleteId(device.id)}
                                 aria-label={`Remover ${device.model}`}
                                 title="Remover aparelho"
-                                className="min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-red-950/50 text-zinc-400 hover:text-red-400 transition-colors active:scale-95"
+                                className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-red-950/50 text-zinc-400 hover:text-red-400 transition-colors active:scale-95"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -804,7 +804,7 @@ export function InventoryView({
                         <button
                           type="button"
                           onClick={() => onSellDevice(device)}
-                          className="flex-1 sm:flex-initial min-h-[44px] px-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap active:scale-[0.98]"
+                          className="w-full sm:w-auto min-h-[44px] px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shrink-0 active:scale-[0.98]"
                         >
                           <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                           Vender
@@ -812,11 +812,11 @@ export function InventoryView({
                       </div>
                     )
                   ) : isReserved ? (
-                    <div className="w-full flex items-center justify-between gap-2">
+                    <div className="w-full flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() => onReserveDevice(device)}
-                        className="min-h-[44px] px-3 rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-[#D4AF37] text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap"
+                        className="flex-1 sm:flex-initial min-h-[44px] px-3 rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-[#D4AF37] text-xs font-semibold inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                       >
                         <BookmarkCheck className="w-4 h-4 shrink-0" />
                         <span>Ver Reserva</span>
@@ -826,7 +826,7 @@ export function InventoryView({
                         <button
                           type="button"
                           onClick={() => onSellDevice(device)}
-                          className="min-h-[44px] px-3.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5C158] text-black font-semibold text-xs inline-flex items-center gap-1.5 whitespace-nowrap"
+                          className="flex-1 sm:flex-initial min-h-[44px] px-3.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5C158] text-black font-semibold text-xs inline-flex items-center justify-center gap-1.5 whitespace-nowrap"
                         >
                           <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                           <span>Concluir Venda</span>
