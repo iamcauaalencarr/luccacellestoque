@@ -8,9 +8,9 @@ export const INTERNAL_AUTH_DOMAIN = 'luccacell.app';
 
 const app = initializeApp(firebaseConfig);
 
-const rawDbId = firebaseConfig.firestoreDatabaseId;
-const isAiStudioDb = !rawDbId || rawDbId.startsWith('ai-studio-') || rawDbId === '(default)';
-export const db = isAiStudioDb ? getFirestore(app) : getFirestore(app, rawDbId);
+export const db = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
