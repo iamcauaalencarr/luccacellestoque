@@ -1,6 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 import type {
   AuditAction,
+  CardFeeCalculationMode,
   ColorVariant,
   DeviceItem,
   InstallmentCountKey,
@@ -61,7 +62,8 @@ export function calculateInstallment(
   baseAmount: number,
   installmentsCount: number,
   rates: InstallmentRates,
-  passFeeToCustomer: boolean
+  passFeeToCustomer: boolean,
+  mode: CardFeeCalculationMode = 'infinitepay_repasse'
 ): {
   count: number;
   ratePercent: number;
@@ -71,10 +73,14 @@ export function calculateInstallment(
   const count = Math.max(1, Math.min(12, Math.round(installmentsCount))) as number;
   const key = String(count) as InstallmentCountKey;
   const ratePercent = Math.max(0, Math.min(45, Number(rates[key]) || 0));
-  const totalWithFee =
-    passFeeToCustomer && ratePercent > 0
-      ? Math.round(baseAmount * (1 + ratePercent / 100) * 100) / 100
-      : Math.round(baseAmount * 100) / 100;
+  let totalWithFee = Math.round(baseAmount * 100) / 100;
+  if (passFeeToCustomer && ratePercent > 0) {
+    if (mode === 'infinitepay_repasse' && ratePercent < 99) {
+      totalWithFee = Math.round((baseAmount / (1 - ratePercent / 100)) * 100) / 100;
+    } else {
+      totalWithFee = Math.round(baseAmount * (1 + ratePercent / 100) * 100) / 100;
+    }
+  }
   const installmentValue = Math.round((totalWithFee / count) * 100) / 100;
   return { count, ratePercent, totalWithFee, installmentValue };
 }

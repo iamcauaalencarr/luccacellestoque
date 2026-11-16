@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   BarChart3,
+  Calculator,
   History,
   LogOut,
   Settings,
@@ -12,6 +13,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db, handleFirestoreError, OperationType } from './firebase';
 import {
   DEFAULT_STORE_SETTINGS,
+  DEFAULT_USER_PREFERENCES,
   type AppTab,
   type AuditLogRecord,
   type DeviceItem,
@@ -19,7 +21,9 @@ import {
   type StaffDirectoryMember,
   type StoreSettings,
   type ToastMessage,
+  type UserPreferences,
 } from './types';
+import { loadUserPreferences, saveUserPreferences } from './utils/userPreferences';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoginView } from './components/LoginView';
 import { InventoryView } from './components/InventoryView';
@@ -32,6 +36,8 @@ import { SaleSheet } from './components/SaleSheet';
 import { NiimbotLabelSheet } from './components/NiimbotLabelSheet';
 import { ReservationSheet } from './components/ReservationSheet';
 import { WarrantyReceiptSheet } from './components/WarrantyReceiptSheet';
+import { GoogleUsernameModal } from './components/GoogleUsernameModal';
+import { SaleSimulatorSheet } from './components/SaleSimulatorSheet';
 
 function StoreBrand({ name, className = '' }: { name: string; className?: string }) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -51,8 +57,11 @@ function StoreBrand({ name, className = '' }: { name: string; className?: string
 }
 
 function MainShell() {
-  const { firebaseUser, profile, authReady, accessDeniedReason, signOut } = useAuth();
+  const { firebaseUser, profile, authReady, needsGoogleUsernameSetup, accessDeniedReason, signOut } =
+    useAuth();
   const [activeTab, setActiveTab] = useState<AppTab>('estoque');
+  const [userPrefs, setUserPrefs] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
+  const [prefsLoadedForUid, setPrefsLoadedForUid] = useState<string | null>(null);
   const [devices, setDevices] = useState<DeviceItem[]>([]);
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [staff, setStaff] = useState<StaffDirectoryMember[]>([]);
@@ -70,6 +79,8 @@ function MainShell() {
     sale: SaleRecord;
     justCompleted?: boolean;
   } | null>(null);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [simulatorDevice, setSimulatorDevice] = useState<DeviceItem | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const notify = useCallback((type: ToastMessage['type'], text: string) => {
@@ -82,6 +93,31 @@ function MainShell() {
 
   const isStaffReady = Boolean(authReady && firebaseUser && profile?.active && !accessDeniedReason);
   const isAdmin = profile?.role === 'admin';
+
+  // Load per-user local preferences once on sign-in
+  useEffect(() => {
+    if (!profile?.uid) {
+      setPrefsLoadedForUid(null);
+      setUserPrefs(DEFAULT_USER_PREFERENCES);
+      return;
+    }
+    if (prefsLoadedForUid !== profile.uid) {
+      const loaded = loadUserPreferences(profile.uid);
+      setUserPrefs(loaded);
+      setActiveTab(loaded.defaultTab);
+      setPrefsLoadedForUid(profile.uid);
+    }
+  }, [profile?.uid, prefsLoadedForUid]);
+
+  const handleUpdatePreferences = useCallback(
+    (next: UserPreferences) => {
+      setUserPrefs(next);
+      if (profile?.uid) {
+        saveUserPreferences(profile.uid, next);
+      }
+    },
+    [profile?.uid]
+  );
 
   // Ensure sellers don't stay on admin-only tabs if role changed
   useEffect(() => {
@@ -209,34 +245,45 @@ function MainShell() {
     return <LoginView />;
   }
 
-  const desktopNavItems: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] =
-    isAdmin
-      ? [
-          { id: 'estoque', label: 'Estoque', icon: Smartphone },
-          { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-          { id: 'equipe', label: 'Equipe', icon: Users },
-          { id: 'auditoria', label: 'Auditoria', icon: History },
-          { id: 'config', label: 'Configurações', icon: Settings },
-        ]
-      : [
-          { id: 'estoque', label: 'Estoque', icon: Smartphone },
-          { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-          { id: 'config', label: 'Configurações', icon: Settings },
-        ];
+  type NavEntry =
+    | { kind: 'tab'; id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }
+    | { kind: 'action'; id: 'simular'; label: string; icon: React.ComponentType<{ className?: string }> };
 
-  const mobileNavItems: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] =
-    isAdmin
-      ? [
-          { id: 'estoque', label: 'Estoque', icon: Smartphone },
-          { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-          { id: 'equipe', label: 'Equipe', icon: Users },
-          { id: 'auditoria', label: 'Auditoria', icon: History },
-        ]
-      : [
-          { id: 'estoque', label: 'Estoque', icon: Smartphone },
-          { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-          { id: 'config', label: 'Config.', icon: Settings },
-        ];
+  const openSimulator = (device: DeviceItem | null = null) => {
+    setSimulatorDevice(device);
+    setSimulatorOpen(true);
+  };
+
+  const desktopNavItems: NavEntry[] = isAdmin
+    ? [
+        { kind: 'tab', id: 'estoque', label: 'Estoque', icon: Smartphone },
+        { kind: 'tab', id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+        { kind: 'action', id: 'simular', label: 'Simular', icon: Calculator },
+        { kind: 'tab', id: 'equipe', label: 'Equipe', icon: Users },
+        { kind: 'tab', id: 'auditoria', label: 'Auditoria', icon: History },
+        { kind: 'tab', id: 'config', label: 'Configurações', icon: Settings },
+      ]
+    : [
+        { kind: 'tab', id: 'estoque', label: 'Estoque', icon: Smartphone },
+        { kind: 'tab', id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+        { kind: 'action', id: 'simular', label: 'Simular', icon: Calculator },
+        { kind: 'tab', id: 'config', label: 'Configurações', icon: Settings },
+      ];
+
+  const mobileNavItems: NavEntry[] = isAdmin
+    ? [
+        { kind: 'tab', id: 'estoque', label: 'Estoque', icon: Smartphone },
+        { kind: 'tab', id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+        { kind: 'action', id: 'simular', label: 'Simular', icon: Calculator },
+        { kind: 'tab', id: 'equipe', label: 'Equipe', icon: Users },
+        { kind: 'tab', id: 'auditoria', label: 'Auditoria', icon: History },
+      ]
+    : [
+        { kind: 'tab', id: 'estoque', label: 'Estoque', icon: Smartphone },
+        { kind: 'tab', id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+        { kind: 'action', id: 'simular', label: 'Simular', icon: Calculator },
+        { kind: 'tab', id: 'config', label: 'Config.', icon: Settings },
+      ];
 
   return (
     <>
@@ -254,6 +301,23 @@ function MainShell() {
             <nav className="space-y-1" aria-label="Navegação principal">
               {desktopNavItems.map((item) => {
                 const Icon = item.icon;
+                if (item.kind === 'action') {
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => openSimulator(null)}
+                      className={`w-full min-h-[44px] px-3.5 rounded-xl text-sm font-medium flex items-center gap-3 transition-colors whitespace-nowrap ${
+                        simulatorOpen
+                          ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/40 font-semibold'
+                          : 'text-[#D4AF37] hover:bg-[#16161C]'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                }
                 const active = activeTab === item.id;
                 return (
                   <button
@@ -297,11 +361,11 @@ function MainShell() {
           <div className="h-12 px-3.5 flex items-center justify-between gap-3">
             <StoreBrand
               name={settings.storeName}
-              className="text-base sm:text-lg shrink-0 truncate max-w-[62vw]"
+              className="text-base sm:text-lg shrink-0 truncate max-w-[48vw]"
             />
 
-            <div className="flex items-center shrink-0">
-              {isAdmin ? (
+            <div className="flex items-center gap-1 shrink-0">
+              {isAdmin && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('config')}
@@ -315,17 +379,16 @@ function MainShell() {
                   <Settings className="w-4 h-4 text-[#D4AF37] shrink-0" />
                   <span className="font-medium">Config.</span>
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => signOut()}
-                  aria-label="Sair da conta"
-                  className="min-h-[44px] px-2.5 rounded-xl text-xs text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors whitespace-nowrap active:scale-[0.97]"
-                >
-                  <LogOut className="w-4 h-4 text-zinc-400 shrink-0" />
-                  <span className="font-medium">Sair</span>
-                </button>
               )}
+              <button
+                type="button"
+                onClick={() => signOut()}
+                aria-label="Sair da conta"
+                className="min-h-[44px] px-2.5 rounded-xl text-xs text-zinc-300 hover:text-white hover:bg-[#16161C] flex items-center gap-1.5 transition-colors whitespace-nowrap active:scale-[0.97]"
+              >
+                <LogOut className="w-4 h-4 text-zinc-400 shrink-0" />
+                <span className="font-medium">Sair</span>
+              </button>
             </div>
           </div>
         </header>
@@ -337,6 +400,7 @@ function MainShell() {
             <InventoryView
               devices={devices}
               settings={settings}
+              preferences={userPrefs}
               loading={loadingData}
               onAddDevice={() => {
                 setEditingDevice(null);
@@ -355,6 +419,7 @@ function MainShell() {
               }}
               onReserveDevice={(device) => setReservingDevice(device)}
               onSellDevice={(device) => setSellingDevice(device)}
+              onSimulateDevice={(device) => openSimulator(device)}
               onPrintLabel={(device) => setLabelDevice(device)}
               onNotify={notify}
             />
@@ -380,7 +445,13 @@ function MainShell() {
           )}
 
           {activeTab === 'config' && (
-            <SettingsView settings={settings} onNotify={notify} />
+            <SettingsView
+              settings={settings}
+              staff={staff}
+              preferences={userPrefs}
+              onUpdatePreferences={handleUpdatePreferences}
+              onNotify={notify}
+            />
           )}
         </div>
       </main>
@@ -392,29 +463,57 @@ function MainShell() {
       >
         <div
           className={`grid h-14 items-center ${
-            mobileNavItems.length === 4 ? 'grid-cols-4' : 'grid-cols-3'
+            mobileNavItems.length === 5
+              ? 'grid-cols-5'
+              : mobileNavItems.length === 4
+                ? 'grid-cols-4'
+                : 'grid-cols-3'
           }`}
         >
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
+            if (item.kind === 'action') {
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openSimulator(null)}
+                  aria-label="Simular venda para cliente"
+                  className="relative min-h-[44px] px-0.5 flex flex-col items-center justify-center gap-0.5 transition-transform active:scale-95"
+                >
+                  <span
+                    className={`w-9 h-6 rounded-xl flex items-center justify-center transition-colors ${
+                      simulatorOpen
+                        ? 'bg-[#E5C158] text-black ring-2 ring-[#D4AF37]/40'
+                        : 'bg-[#D4AF37] text-black'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold tracking-tight text-[#D4AF37] whitespace-nowrap">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            }
             const active = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id)}
-                className={`relative min-h-[44px] flex flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
+                className={`relative min-h-[44px] px-0.5 flex flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
                   active ? 'text-[#D4AF37]' : 'text-zinc-500 hover:text-zinc-200'
                 }`}
               >
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-[#D4AF37]"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-7 h-0.5 rounded-full bg-[#D4AF37]"
                   />
                 )}
                 <Icon className="w-[18px] h-[18px]" />
-                <span className="text-[11px] font-medium tracking-tight whitespace-nowrap">
+                <span className="text-[10px] sm:text-[11px] font-medium tracking-tight whitespace-nowrap">
                   {item.label}
                 </span>
               </button>
@@ -443,7 +542,11 @@ function MainShell() {
         settings={settings}
         onClose={() => setSellingDevice(null)}
         onSuccess={(msg) => notify('success', msg)}
-        onSaleCompleted={(sale) => setWarrantyTarget({ sale, justCompleted: true })}
+        onSaleCompleted={(sale) => {
+          if (userPrefs.autoOpenWarrantyAfterSale) {
+            setWarrantyTarget({ sale, justCompleted: true });
+          }
+        }}
         onError={(msg) => notify('error', msg)}
       />
 
@@ -488,6 +591,29 @@ function MainShell() {
       justCompleted={warrantyTarget?.justCompleted}
       settings={settings}
       onClose={() => setWarrantyTarget(null)}
+      onNotify={notify}
+    />
+
+    <GoogleUsernameModal
+      open={needsGoogleUsernameSetup}
+      profile={profile}
+      staff={staff}
+      onSuccess={(msg) => notify('success', msg)}
+      onError={(msg) => notify('error', msg)}
+    />
+
+    <SaleSimulatorSheet
+      open={simulatorOpen}
+      initialDevice={simulatorDevice}
+      devices={devices}
+      settings={settings}
+      canReserve={isAdmin || settings.allowSellerReserve !== false}
+      onClose={() => {
+        setSimulatorOpen(false);
+        setSimulatorDevice(null);
+      }}
+      onProceedToSell={(d) => setSellingDevice(d)}
+      onProceedToReserve={(d) => setReservingDevice(d)}
       onNotify={notify}
     />
   </>

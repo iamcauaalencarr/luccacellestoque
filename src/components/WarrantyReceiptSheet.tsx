@@ -46,9 +46,15 @@ function buildWarrantyText(sale: SaleRecord, settings: StoreSettings): string {
         ? `${PAYMENT_LABELS[sale.paymentMethod]} (${sale.installments}x)`
         : PAYMENT_LABELS[sale.paymentMethod];
 
+  const termsText =
+    settings.warrantyTerms?.trim() ||
+    'Cobre defeitos de fabricação/funcionamento em condições normais de uso. Não cobre mau uso, quedas, umidade ou violação de selo.';
+
   const lines = [
     `*COMPROVANTE DE COMPRA E GARANTIA*`,
     `*${store}*${settings.storePhone ? ` · ${settings.storePhone}` : ''}`,
+    settings.storeDocument ? `CPF/CNPJ: ${settings.storeDocument}` : null,
+    settings.storeAddress ? `Endereço: ${settings.storeAddress}` : null,
     `Data: ${formatTimestamp(sale.createdAt)}`,
     sale.customerName ? `Cliente: ${formatTitleName(sale.customerName)}` : null,
     ``,
@@ -65,7 +71,7 @@ function buildWarrantyText(sale: SaleRecord, settings: StoreSettings): string {
     warranty.days > 0
       ? `*Garantia:* ${warranty.days} dias (válida até *${warranty.formattedEnd}*)`
       : `*Garantia:* Sem garantia adicional registrada`,
-    `Cobre defeitos de fabricação/funcionamento em condições normais de uso. Não cobre mau uso, quedas, umidade ou violação de selo.`,
+    termsText,
   ].filter((line) => line !== null);
 
   return lines.join('\n');
@@ -284,7 +290,11 @@ export function WarrantyReceiptSheet({
                   </p>
                   <p className="text-[11px] text-zinc-400">
                     Certificado de Compra e Garantia
+                    {settings.storeDocument ? ` · ${settings.storeDocument}` : ''}
                   </p>
+                  {settings.storeAddress && (
+                    <p className="text-[11px] text-zinc-500 truncate">{settings.storeAddress}</p>
+                  )}
                 </div>
                 <span className="font-mono-tabular text-[11px] text-zinc-400 shrink-0">
                   #{sale.id.slice(0, 6).toUpperCase()}
@@ -442,7 +452,9 @@ export function WarrantyReceiptSheet({
       <div className="hidden print:block p-6 text-black bg-white font-sans max-w-md mx-auto">
         <div className="border-b-2 border-black pb-3 mb-3">
           <h1 className="text-xl font-bold uppercase">{settings.storeName}</h1>
+          {settings.storeDocument && <p className="text-xs">CPF/CNPJ: {settings.storeDocument}</p>}
           {settings.storePhone && <p className="text-xs">{settings.storePhone}</p>}
+          {settings.storeAddress && <p className="text-xs">{settings.storeAddress}</p>}
           <p className="text-xs mt-1">Comprovante de Compra e Garantia · #{sale.id.slice(0, 6).toUpperCase()}</p>
         </div>
         <div className="space-y-1.5 text-xs">
@@ -464,7 +476,8 @@ export function WarrantyReceiptSheet({
               : 'Sem garantia adicional'}
           </p>
           <p className="mt-1 text-[11px]">
-            Cobertura válida para defeitos de funcionamento. Não cobre quedas, líquidos ou violação.
+            {settings.warrantyTerms?.trim() ||
+              'Cobertura válida para defeitos de funcionamento. Não cobre quedas, líquidos ou violação.'}
           </p>
         </div>
       </div>

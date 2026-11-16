@@ -44,7 +44,8 @@ function formatDeviceWhatsAppLine(
         device.price,
         12,
         settings.installmentRates,
-        settings.passCardFeeToCustomer
+        settings.passCardFeeToCustomer,
+        settings.cardFeeCalculationMode || 'infinitepay_repasse'
       )
     : null;
   const instSuffix = inst ? `\n  ou 12x de ${formatBRL(inst.installmentValue)}` : '';
@@ -158,8 +159,19 @@ export function WhatsAppListSheet({
       }
     }
 
-    if (includePhone && settings.storePhone.trim()) {
-      lines.push('', `Atendimento WhatsApp: ${settings.storePhone.trim()}`);
+    if (settings.whatsappListFooter?.trim()) {
+      lines.push('', settings.whatsappListFooter.trim());
+    }
+
+    if (includePhone && (settings.storePhone.trim() || settings.storeAddress?.trim())) {
+      const contactParts: string[] = [];
+      if (settings.storePhone.trim()) {
+        contactParts.push(`Atendimento WhatsApp: ${settings.storePhone.trim()}`);
+      }
+      if (settings.storeAddress?.trim()) {
+        contactParts.push(`Endereço: ${settings.storeAddress.trim()}`);
+      }
+      lines.push('', ...contactParts);
     }
 
     return lines.join('\n');

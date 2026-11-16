@@ -23,6 +23,8 @@ interface AuthContextValue {
   firebaseUser: User | null;
   profile: UserAccount | null;
   authReady: boolean;
+  isGoogleUser: boolean;
+  needsGoogleUsernameSetup: boolean;
   accessDeniedReason: 'inactive' | 'unregistered' | null;
   signInWithCredentials: (usernameOrEmail: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -86,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           displayName,
           role: 'admin',
           active: true,
+          usernameConfirmed: false,
           createdBy: user.uid,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -154,12 +157,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await firebaseSignOut(auth);
   };
 
+  const isGoogleUser = Boolean(
+    firebaseUser?.providerData.some((p) => p.providerId === 'google.com')
+  );
+  const needsGoogleUsernameSetup = Boolean(
+    authReady &&
+      isGoogleUser &&
+      profile &&
+      profile.active &&
+      !accessDeniedReason &&
+      profile.usernameConfirmed !== true
+  );
+
   return (
     <AuthContext.Provider
       value={{
         firebaseUser,
         profile,
         authReady,
+        isGoogleUser,
+        needsGoogleUsernameSetup,
         accessDeniedReason,
         signInWithCredentials,
         signInWithGoogle,

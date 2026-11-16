@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeftRight,
   BookmarkCheck,
+  Check,
   CheckCircle2,
+  Copy,
   CreditCard,
   ScanLine,
   ShieldCheck,
@@ -96,6 +98,7 @@ export function SaleSheet({
 
   // Scanner target
   const [scannerTarget, setScannerTarget] = useState<'sale' | 'tradein' | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -155,6 +158,7 @@ export function SaleSheet({
   }, [device, submitting, scannerTarget, onClose]);
 
   const canEditPrice = profile?.role === 'admin' || settings.allowSellerPriceEdit;
+  const canUseTradeIn = profile?.role === 'admin' || settings.allowSellerTradeIn !== false;
   const parsedDraftPrice = device
     ? canEditPrice
       ? Number(salePrice.replace(',', '.'))
@@ -195,13 +199,15 @@ export function SaleSheet({
         creditBaseAmount,
         installments,
         settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
-        settings.passCardFeeToCustomer
+        settings.passCardFeeToCustomer,
+        settings.cardFeeCalculationMode || 'infinitepay_repasse'
       ),
     [
       creditBaseAmount,
       installments,
       settings.installmentRates,
       settings.passCardFeeToCustomer,
+      settings.cardFeeCalculationMode,
     ]
   );
 
@@ -288,7 +294,8 @@ export function SaleSheet({
       baseNet,
       installments,
       settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
-      true
+      true,
+      settings.cardFeeCalculationMode || 'infinitepay_repasse'
     );
     const nextGross = Math.round((totalWithFee + parsedTradeInValue) * 100) / 100;
     setSalePrice(nextGross.toFixed(2));
@@ -392,6 +399,11 @@ export function SaleSheet({
 
     if (settings.requireCustomerOnSale && !customerName.trim()) {
       onError('Informe o nome do cliente para concluir a venda.');
+      return;
+    }
+
+    if (settings.requireCustomerPhoneOnSale && customerPhone.replace(/\D/g, '').length < 10) {
+      onError('Informe o WhatsApp do cliente para concluir a venda.');
       return;
     }
 
@@ -633,6 +645,7 @@ export function SaleSheet({
             </div>
 
             {/* Trade-In Toggle & Panel */}
+            {canUseTradeIn && (
             <div className="rounded-2xl bg-[#09090B] border border-[#26262E] p-3.5 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
@@ -827,6 +840,7 @@ export function SaleSheet({
                 </div>
               )}
             </div>
+            )}
 
             {/* Payment Method (only when netCashDue > 0) */}
             {netCashDue > 0 ? (
@@ -864,6 +878,41 @@ export function SaleSheet({
                     Pagamento Misto (até 2 formas)
                   </button>
                 </div>
+
+                {/* Quick Store Pix Key Helper */}
+                {settings.storePixKey?.trim() &&
+                  (paymentMethod === 'pix' ||
+                    (paymentMethod === 'misto' &&
+                      (splitMethod1 === 'pix' || splitMethod2 === 'pix'))) && (
+                    <div className="rounded-xl bg-[#09090B] border border-[#26262E] px-3 py-2 flex items-center justify-between gap-2 text-xs">
+                      <div className="min-w-0">
+                        <span className="text-[11px] text-zinc-400 block">Chave Pix da Loja</span>
+                        <span className="font-mono-tabular font-semibold text-[#D4AF37] truncate block">
+                          {settings.storePixKey}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(settings.storePixKey!.trim());
+                            setCopiedPix(true);
+                            setTimeout(() => setCopiedPix(false), 1800);
+                          } catch {
+                            onError('Não foi possível copiar a Chave Pix.');
+                          }
+                        }}
+                        className="min-h-[34px] px-2.5 rounded-lg bg-[#1A1A20] hover:bg-[#24242C] text-white font-semibold inline-flex items-center gap-1 shrink-0"
+                      >
+                        {copiedPix ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        )}
+                        <span>{copiedPix ? 'Copiada' : 'Copiar Pix'}</span>
+                      </button>
+                    </div>
+                  )}
 
                 {/* Mixed Payment Split */}
                 {paymentMethod === 'misto' && (
@@ -1050,7 +1099,7 @@ export function SaleSheet({
 
               <div className="space-y-1.5">
                 <label htmlFor="sale-phone" className="block text-xs font-medium text-zinc-400">
-                  WhatsApp do Cliente (opcional)
+                  WhatsApp do Cliente ({settings.requireCustomerPhoneOnSale ? 'obrigatório' : 'opcional'})
                 </label>
                 <input
                   id="sale-phone"
@@ -1061,6 +1110,7 @@ export function SaleSheet({
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   onBlur={() => setCustomerPhone((prev) => formatPhoneBR(prev))}
                   placeholder="(11) 99999-9999"
+                  required={Boolean(settings.requireCustomerPhoneOnSale)}
                   className="w-full min-h-[46px] px-3.5 rounded-xl bg-[#09090B] border border-[#26262E] text-white font-mono-tabular placeholder:text-zinc-600 text-base sm:text-sm focus:outline-none focus:border-[#D4AF37]"
                 />
               </div>

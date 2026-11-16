@@ -40,6 +40,10 @@
           "type": "boolean",
           "description": "Whether account is currently enabled"
         },
+        "usernameConfirmed": {
+          "type": "boolean",
+          "description": "Whether a Google-authenticated user has confirmed their display username"
+        },
         "createdBy": {
           "type": "string",
           "minLength": 1,
@@ -409,6 +413,18 @@
           "type": "string",
           "maxLength": 30
         },
+        "storeDocument": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "storeAddress": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "storePixKey": {
+          "type": "string",
+          "maxLength": 100
+        },
         "defaultCondition": {
           "type": "string",
           "enum": ["lacrado", "seminovo"]
@@ -426,6 +442,15 @@
         "requireCustomerOnSale": {
           "type": "boolean"
         },
+        "requireCustomerPhoneOnSale": {
+          "type": "boolean"
+        },
+        "allowSellerTradeIn": {
+          "type": "boolean"
+        },
+        "allowSellerReserve": {
+          "type": "boolean"
+        },
         "lowBatteryWarningThreshold": {
           "type": "integer"
         },
@@ -438,8 +463,24 @@
         "warrantyDaysSeminovo": {
           "type": "integer"
         },
+        "warrantyTerms": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "whatsappListFooter": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "debitFeePercent": {
+          "type": "number"
+        },
         "passCardFeeToCustomer": {
           "type": "boolean"
+        },
+        "cardFeeCalculationMode": {
+          "type": "string",
+          "enum": ["infinitepay_repasse", "simple_markup"],
+          "description": "Whether card fee pass-through uses InfinitePay net-preservation formula (amount / (1 - rate)) or simple markup (amount * (1 + rate))"
         },
         "installmentRates": {
           "type": "object",

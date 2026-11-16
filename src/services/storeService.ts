@@ -809,6 +809,75 @@ export async function updateStaffAccess(
   }
 }
 
+export interface UpdateOwnProfileInput {
+  displayName: string;
+  username?: string;
+  usernameConfirmed?: boolean;
+}
+
+export async function updateOwnProfile(
+  uid: string,
+  input: UpdateOwnProfileInput,
+  staffList: StaffDirectoryMember[] = []
+): Promise<{ displayName: string; username?: string }> {
+  const displayName = clampString(
+    formatTitleName(input.displayName),
+    SCHEMA_LIMITS.DISPLAY_NAME_MAX
+  );
+  if (displayName.length < SCHEMA_LIMITS.DISPLAY_NAME_MIN) {
+    throw new Error('Informe um nome de exibição com pelo menos 2 caracteres.');
+  }
+
+  let cleanUsername: string | undefined;
+  if (input.username !== undefined) {
+    cleanUsername = extractUsername(input.username);
+    if (
+      cleanUsername.length < SCHEMA_LIMITS.USERNAME_MIN ||
+      cleanUsername.length > SCHEMA_LIMITS.USERNAME_MAX ||
+      !SCHEMA_LIMITS.USERNAME_PATTERN.test(cleanUsername)
+    ) {
+      throw new Error('Use de 3 a 50 caracteres (letras, números, ponto, traço ou sublinhado).');
+    }
+    const conflict = staffList.find(
+      (m) => m.uid !== uid && m.username.toLowerCase() === cleanUsername!.toLowerCase()
+    );
+    if (conflict) {
+      throw new Error(`O usuário @${cleanUsername} já está sendo usado por ${conflict.displayName}.`);
+    }
+  }
+
+  const userRef = doc(db, 'users', uid);
+  const directoryRef = doc(db, 'staffDirectory', uid);
+  const batch = writeBatch(db);
+
+  const userUpdates: Record<string, unknown> = {
+    displayName,
+    updatedAt: serverTimestamp(),
+  };
+  const directoryUpdates: Record<string, unknown> = {
+    displayName,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (cleanUsername !== undefined) {
+    userUpdates.username = cleanUsername;
+    directoryUpdates.username = cleanUsername;
+  }
+  if (input.usernameConfirmed !== undefined) {
+    userUpdates.usernameConfirmed = input.usernameConfirmed;
+  }
+
+  batch.update(userRef, userUpdates);
+  batch.update(directoryRef, directoryUpdates);
+
+  try {
+    await batch.commit();
+    return { displayName, username: cleanUsername };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `users/${uid}`);
+  }
+}
+
 function normalizeInstallmentRates(raw?: Partial<InstallmentRates>): InstallmentRates {
   const keys: InstallmentCountKey[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   const out = {} as InstallmentRates;
@@ -832,6 +901,14 @@ export async function saveStoreSettings(
   }
   const storeTagline = clampString(input.storeTagline || '', SCHEMA_LIMITS.STORE_TAGLINE_MAX);
   const storePhone = clampString(input.storePhone || '', SCHEMA_LIMITS.STORE_PHONE_MAX);
+  const storeDocument = clampString(input.storeDocument || '', SCHEMA_LIMITS.STORE_DOCUMENT_MAX);
+  const storeAddress = clampString(input.storeAddress || '', SCHEMA_LIMITS.STORE_ADDRESS_MAX);
+  const storePixKey = clampString(input.storePixKey || '', SCHEMA_LIMITS.STORE_PIX_MAX);
+  const warrantyTerms = clampString(input.warrantyTerms || '', SCHEMA_LIMITS.WARRANTY_TERMS_MAX);
+  const whatsappListFooter = clampString(
+    input.whatsappListFooter || '',
+    SCHEMA_LIMITS.WHATSAPP_FOOTER_MAX
+  );
   const cleanPrefix =
     input.labelPrefix
       .replace(/[^a-zA-Z0-9]/g, '')
@@ -853,6 +930,12 @@ export async function saveStoreSettings(
     0,
     Math.min(SCHEMA_LIMITS.WARRANTY_DAYS_MAX, Math.round(input.warrantyDaysSeminovo ?? 90))
   );
+  const debitFeeVal = Number(input.debitFeePercent ?? 0);
+  const debitFeePercent =
+    Math.round(
+      Math.max(0, Math.min(SCHEMA_LIMITS.RATE_MAX, Number.isFinite(debitFeeVal) ? debitFeeVal : 0)) *
+        100
+    ) / 100;
   const installmentRates = normalizeInstallmentRates(input.installmentRates);
   const defaultStorageGb = Math.max(16, Math.min(4096, Math.round(input.defaultStorageGb)));
 
@@ -864,16 +947,29 @@ export async function saveStoreSettings(
     storeName,
     storeTagline,
     storePhone,
+    storeDocument,
+    storeAddress,
+    storePixKey,
     defaultCondition: input.defaultCondition,
     defaultStorageGb,
     defaultPaymentMethod: input.defaultPaymentMethod,
     allowSellerPriceEdit: Boolean(input.allowSellerPriceEdit),
     requireCustomerOnSale: Boolean(input.requireCustomerOnSale),
+    requireCustomerPhoneOnSale: Boolean(input.requireCustomerPhoneOnSale),
+    allowSellerTradeIn: input.allowSellerTradeIn !== false,
+    allowSellerReserve: input.allowSellerReserve !== false,
     lowBatteryWarningThreshold,
     lowStockThreshold,
     warrantyDaysLacrado,
     warrantyDaysSeminovo,
+    warrantyTerms,
+    whatsappListFooter,
+    debitFeePercent,
     passCardFeeToCustomer: Boolean(input.passCardFeeToCustomer),
+    cardFeeCalculationMode:
+      input.cardFeeCalculationMode === 'simple_markup'
+        ? 'simple_markup'
+        : 'infinitepay_repasse',
     installmentRates,
     defaultLabelPresetId: input.defaultLabelPresetId,
     defaultLabelStyleId: input.defaultLabelStyleId,

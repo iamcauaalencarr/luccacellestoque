@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Bookmark,
   BookmarkCheck,
+  Calculator,
   Check,
   ChevronDown,
   ChevronUp,
@@ -25,6 +26,7 @@ import {
   type DeviceItem,
   type DeviceStatus,
   type StoreSettings,
+  type UserPreferences,
 } from '../types';
 import {
   calculateInstallment,
@@ -48,12 +50,14 @@ type InventorySort = 'recentes' | 'menor_preco' | 'maior_preco' | 'modelo';
 interface InventoryViewProps {
   devices: DeviceItem[];
   settings: StoreSettings;
+  preferences?: UserPreferences;
   loading: boolean;
   onAddDevice: () => void;
   onEditDevice: (device: DeviceItem) => void;
   onDuplicateDevice: (device: DeviceItem) => void;
   onReserveDevice: (device: DeviceItem) => void;
   onSellDevice: (device: DeviceItem) => void;
+  onSimulateDevice: (device: DeviceItem) => void;
   onPrintLabel: (device: DeviceItem) => void;
   onNotify: (type: 'success' | 'error' | 'info', text: string) => void;
 }
@@ -69,12 +73,14 @@ interface LowStockEntry {
 export function InventoryView({
   devices,
   settings,
+  preferences,
   loading,
   onAddDevice,
   onEditDevice,
   onDuplicateDevice,
   onReserveDevice,
   onSellDevice,
+  onSimulateDevice,
   onPrintLabel,
   onNotify,
 }: InventoryViewProps) {
@@ -82,8 +88,12 @@ export function InventoryView({
   const isAdmin = profile?.role === 'admin';
 
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<InventorySort>('recentes');
-  const [conditionFilter, setConditionFilter] = useState<'todos' | DeviceCondition>('todos');
+  const [sortBy, setSortBy] = useState<InventorySort>(
+    preferences?.defaultInventorySort || 'recentes'
+  );
+  const [conditionFilter, setConditionFilter] = useState<'todos' | DeviceCondition>(
+    preferences?.defaultConditionFilter || 'todos'
+  );
   const [statusFilter, setStatusFilter] = useState<DeviceStatus>('disponivel');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -202,7 +212,8 @@ export function InventoryView({
       device.price,
       12,
       settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
-      settings.passCardFeeToCustomer
+      settings.passCardFeeToCustomer,
+      settings.cardFeeCalculationMode || 'infinitepay_repasse'
     );
     const lines = [
       `*${formatTitleName(settings.storeName)}*`,
@@ -266,7 +277,7 @@ export function InventoryView({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {summary.totalAvailable > 0 && (
             <button
               type="button"
@@ -282,7 +293,7 @@ export function InventoryView({
             <button
               type="button"
               onClick={onAddDevice}
-              className="flex-1 sm:flex-initial min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5C158] text-black font-semibold text-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap shrink-0"
+              className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#E5C158] text-black font-semibold text-sm flex items-center justify-center gap-2 transition-colors whitespace-nowrap shrink-0"
             >
               <Plus className="w-4 h-4 shrink-0" />
               <span>Novo Aparelho</span>
@@ -544,7 +555,8 @@ export function InventoryView({
               device.price,
               12,
               settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
-              settings.passCardFeeToCustomer
+              settings.passCardFeeToCustomer,
+              settings.cardFeeCalculationMode || 'infinitepay_repasse'
             );
             const canFinalizeReserved =
               isReserved &&
@@ -574,11 +586,12 @@ export function InventoryView({
                         <span className="font-mono-tabular font-bold text-base text-[#D4AF37] whitespace-nowrap block leading-snug">
                           {formatBRL(device.price)}
                         </span>
-                        {(isAvailable || isReserved) && (
-                          <span className="text-[11px] text-zinc-400 font-mono-tabular block whitespace-nowrap">
-                            12x {formatBRL(parcel12.installmentValue)}
-                          </span>
-                        )}
+                        {(isAvailable || isReserved) &&
+                          preferences?.showInstallmentPreview !== false && (
+                            <span className="text-[11px] text-zinc-400 font-mono-tabular block whitespace-nowrap">
+                              12x {formatBRL(parcel12.installmentValue)}
+                            </span>
+                          )}
                         {isAvailable && (
                           <span className="text-[11px] font-medium text-emerald-400 font-mono-tabular block">
                             {totalStock > 1 ? `${totalStock} un. disponíveis` : 'Disponível'}
@@ -639,7 +652,7 @@ export function InventoryView({
                       </span>
                     </p>
 
-                    {device.imei && (
+                    {device.imei && preferences?.showImeiOnCards !== false && (
                       <p className="text-[11px] text-zinc-400 font-mono-tabular truncate">
                         IMEI {device.imei}
                       </p>
@@ -760,13 +773,25 @@ export function InventoryView({
 
                           <button
                             type="button"
-                            onClick={() => onReserveDevice(device)}
-                            aria-label={`Reservar ${device.model}`}
-                            title="Reservar aparelho / sinal"
-                            className="flex-1 sm:flex-initial min-w-[40px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-[#D4AF37] transition-colors active:scale-95"
+                            onClick={() => onSimulateDevice(device)}
+                            aria-label={`Simular venda de ${device.model}`}
+                            title="Simular venda para cliente (até 12x)"
+                            className="flex-1 sm:flex-initial min-w-[36px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-[#D4AF37] transition-colors active:scale-95"
                           >
-                            <Bookmark className="w-4 h-4" />
+                            <Calculator className="w-4 h-4" />
                           </button>
+
+                          {(isAdmin || settings.allowSellerReserve !== false) && (
+                            <button
+                              type="button"
+                              onClick={() => onReserveDevice(device)}
+                              aria-label={`Reservar ${device.model}`}
+                              title="Reservar aparelho / sinal"
+                              className="flex-1 sm:flex-initial min-w-[36px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#1A1A20] hover:bg-[#24242C] text-zinc-300 hover:text-[#D4AF37] transition-colors active:scale-95"
+                            >
+                              <Bookmark className="w-4 h-4" />
+                            </button>
+                          )}
 
                           {isAdmin && (
                             <>

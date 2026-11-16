@@ -60,13 +60,14 @@ service cloud.firestore {
     // Validation Blueprints
     function isValidUserAccount(data) {
       return data.keys().hasAll(['uid', 'username', 'email', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['uid', 'username', 'email', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'username', 'email', 'displayName', 'role', 'active', 'usernameConfirmed', 'createdBy', 'createdAt', 'updatedAt'])
         && isValidId(data.uid)
         && data.username is string && data.username.size() >= 3 && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9._\\-]+$')
         && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
         && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80
         && data.role in ['admin', 'vendedor']
         && data.active is bool
+        && (!('usernameConfirmed' in data) || data.usernameConfirmed is bool)
         && isValidId(data.createdBy)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
@@ -257,16 +258,26 @@ service cloud.firestore {
           'storeName',
           'storeTagline',
           'storePhone',
+          'storeDocument',
+          'storeAddress',
+          'storePixKey',
           'defaultCondition',
           'defaultStorageGb',
           'defaultPaymentMethod',
           'allowSellerPriceEdit',
           'requireCustomerOnSale',
+          'requireCustomerPhoneOnSale',
+          'allowSellerTradeIn',
+          'allowSellerReserve',
           'lowBatteryWarningThreshold',
           'lowStockThreshold',
           'warrantyDaysLacrado',
           'warrantyDaysSeminovo',
+          'warrantyTerms',
+          'whatsappListFooter',
+          'debitFeePercent',
           'passCardFeeToCustomer',
+          'cardFeeCalculationMode',
           'installmentRates',
           'defaultLabelPresetId',
           'defaultLabelStyleId',
@@ -280,16 +291,26 @@ service cloud.firestore {
         && data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 40
         && data.storeTagline is string && data.storeTagline.size() <= 80
         && data.storePhone is string && data.storePhone.size() <= 30
+        && (!('storeDocument' in data) || (data.storeDocument is string && data.storeDocument.size() <= 30))
+        && (!('storeAddress' in data) || (data.storeAddress is string && data.storeAddress.size() <= 120))
+        && (!('storePixKey' in data) || (data.storePixKey is string && data.storePixKey.size() <= 100))
         && data.defaultCondition in ['lacrado', 'seminovo']
         && data.defaultStorageGb is int && data.defaultStorageGb >= 16 && data.defaultStorageGb <= 4096
         && data.defaultPaymentMethod in ['pix', 'credito', 'debito', 'dinheiro']
         && data.allowSellerPriceEdit is bool
         && data.requireCustomerOnSale is bool
+        && (!('requireCustomerPhoneOnSale' in data) || data.requireCustomerPhoneOnSale is bool)
+        && (!('allowSellerTradeIn' in data) || data.allowSellerTradeIn is bool)
+        && (!('allowSellerReserve' in data) || data.allowSellerReserve is bool)
         && data.lowBatteryWarningThreshold is int && data.lowBatteryWarningThreshold >= 50 && data.lowBatteryWarningThreshold <= 95
         && (!('lowStockThreshold' in data) || (data.lowStockThreshold is int && data.lowStockThreshold >= 0 && data.lowStockThreshold <= 20))
         && (!('warrantyDaysLacrado' in data) || (data.warrantyDaysLacrado is int && data.warrantyDaysLacrado >= 0 && data.warrantyDaysLacrado <= 1095))
         && (!('warrantyDaysSeminovo' in data) || (data.warrantyDaysSeminovo is int && data.warrantyDaysSeminovo >= 0 && data.warrantyDaysSeminovo <= 1095))
+        && (!('warrantyTerms' in data) || (data.warrantyTerms is string && data.warrantyTerms.size() <= 240))
+        && (!('whatsappListFooter' in data) || (data.whatsappListFooter is string && data.whatsappListFooter.size() <= 200))
+        && (!('debitFeePercent' in data) || isValidRateValue(data.debitFeePercent))
         && (!('passCardFeeToCustomer' in data) || data.passCardFeeToCustomer is bool)
+        && (!('cardFeeCalculationMode' in data) || data.cardFeeCalculationMode in ['infinitepay_repasse', 'simple_markup'])
         && (!('installmentRates' in data) || isValidInstallmentRates(data.installmentRates))
         && data.defaultLabelPresetId in ['30x20', '50x30', '40x30', '60x40', '50x15', '40x12']
         && data.defaultLabelStyleId in ['boutique', 'vitrine', 'ficha', 'minimal']
@@ -315,13 +336,21 @@ service cloud.firestore {
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
       allow update: if isValidId(userId)
-        && isAdmin()
         && isValidUserAccount(incoming())
         && incoming().uid == existing().uid
+        && incoming().email == existing().email
         && incoming().createdBy == existing().createdBy
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'updatedAt']);
+        && (
+          (isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'username', 'usernameConfirmed', 'updatedAt']))
+          || (isOwner(userId)
+            && isActiveStaff()
+            && incoming().role == existing().role
+            && incoming().active == existing().active
+            && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'displayName', 'usernameConfirmed', 'updatedAt']))
+        );
       allow delete: if false;
     }
 
@@ -337,13 +366,20 @@ service cloud.firestore {
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
       allow update: if isValidId(userId)
-        && isAdmin()
         && isValidStaffDirectoryMember(incoming())
         && incoming().uid == existing().uid
         && incoming().createdBy == existing().createdBy
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'updatedAt']);
+        && (
+          (isAdmin()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'username', 'updatedAt']))
+          || (isOwner(userId)
+            && isActiveStaff()
+            && incoming().role == existing().role
+            && incoming().active == existing().active
+            && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'displayName', 'updatedAt']))
+        );
       allow delete: if false;
     }
 

@@ -33,20 +33,106 @@ export type InstallmentCountKey =
   | '12';
 
 export type InstallmentRates = Record<InstallmentCountKey, number>;
+export type CardFeeCalculationMode = 'infinitepay_repasse' | 'simple_markup';
+
+export interface InfinitePayTierPreset {
+  id: 'up_to_20k' | '20k_to_40k' | '40k_to_80k' | 'above_80k';
+  label: string;
+  shortLabel: string;
+  description: string;
+  debitFeePercent: number;
+  installmentRates: InstallmentRates;
+}
+
+export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
+  {
+    id: 'up_to_20k',
+    label: 'InfinitePay · Até R$ 20 mil/mês',
+    shortLabel: 'Até 20k',
+    description: 'Visa/Mastercard · recebimento em 1 dia útil',
+    debitFeePercent: 1.37,
+    installmentRates: {
+      '1': 3.15,
+      '2': 5.39,
+      '3': 6.12,
+      '4': 6.85,
+      '5': 7.57,
+      '6': 8.28,
+      '7': 8.99,
+      '8': 9.8,
+      '9': 10.38,
+      '10': 11.06,
+      '11': 11.74,
+      '12': 12.4,
+    },
+  },
+  {
+    id: '20k_to_40k',
+    label: 'InfinitePay · R$ 20 mil a 40 mil',
+    shortLabel: '20k–40k',
+    description: 'Visa/Mastercard · recebimento em 1 dia útil',
+    debitFeePercent: 0.85,
+    installmentRates: {
+      '1': 2.89,
+      '2': 4.22,
+      '3': 4.83,
+      '4': 5.44,
+      '5': 6.06,
+      '6': 6.64,
+      '7': 7.24,
+      '8': 7.82,
+      '9': 8.42,
+      '10': 8.98,
+      '11': 9.56,
+      '12': 10.12,
+    },
+  },
+  {
+    id: '40k_to_80k',
+    label: 'InfinitePay · R$ 40 mil a 80 mil',
+    shortLabel: '40k–80k',
+    description: 'Visa/Mastercard · recebimento em 1 dia útil',
+    debitFeePercent: 0.79,
+    installmentRates: {
+      '1': 2.79,
+      '2': 4.08,
+      '3': 4.65,
+      '4': 5.21,
+      '5': 5.77,
+      '6': 6.32,
+      '7': 6.87,
+      '8': 7.42,
+      '9': 7.96,
+      '10': 8.49,
+      '11': 9.03,
+      '12': 9.56,
+    },
+  },
+  {
+    id: 'above_80k',
+    label: 'InfinitePay · Acima de R$ 80 mil',
+    shortLabel: '80k+',
+    description: 'Visa/Mastercard · recebimento em 1 dia útil',
+    debitFeePercent: 0.75,
+    installmentRates: {
+      '1': 2.69,
+      '2': 3.94,
+      '3': 4.46,
+      '4': 4.98,
+      '5': 5.49,
+      '6': 5.99,
+      '7': 6.51,
+      '8': 6.99,
+      '9': 7.51,
+      '10': 7.99,
+      '11': 8.49,
+      '12': 8.99,
+    },
+  },
+];
 
 export const DEFAULT_INSTALLMENT_RATES: InstallmentRates = {
-  '1': 3.49,
-  '2': 4.59,
-  '3': 5.49,
-  '4': 6.39,
-  '5': 7.29,
-  '6': 8.19,
-  '7': 9.09,
-  '8': 9.99,
-  '9': 10.89,
-  '10': 11.79,
-  '11': 12.69,
-  '12': 13.59,
+  ...INFINITEPAY_PRESETS[0].installmentRates,
 };
 
 export type AuditAction =
@@ -84,6 +170,11 @@ export const SCHEMA_LIMITS = {
   STORE_NAME_MAX: 40,
   STORE_TAGLINE_MAX: 80,
   STORE_PHONE_MAX: 30,
+  STORE_DOCUMENT_MAX: 30,
+  STORE_ADDRESS_MAX: 120,
+  STORE_PIX_MAX: 100,
+  WARRANTY_TERMS_MAX: 240,
+  WHATSAPP_FOOTER_MAX: 200,
   LABEL_PREFIX_MAX: 6,
   COLOR_VARIANTS_MAX: 12,
   VARIANT_QTY_MAX: 500,
@@ -97,16 +188,26 @@ export interface StoreSettings {
   storeName: string;
   storeTagline: string;
   storePhone: string;
+  storeDocument?: string;
+  storeAddress?: string;
+  storePixKey?: string;
   defaultCondition: DeviceCondition;
   defaultStorageGb: number;
   defaultPaymentMethod: SinglePaymentMethod;
   allowSellerPriceEdit: boolean;
   requireCustomerOnSale: boolean;
+  requireCustomerPhoneOnSale?: boolean;
+  allowSellerTradeIn?: boolean;
+  allowSellerReserve?: boolean;
   lowBatteryWarningThreshold: number;
   lowStockThreshold: number;
   warrantyDaysLacrado: number;
   warrantyDaysSeminovo: number;
+  warrantyTerms?: string;
+  whatsappListFooter?: string;
+  debitFeePercent?: number;
   passCardFeeToCustomer: boolean;
+  cardFeeCalculationMode?: CardFeeCalculationMode;
   installmentRates: InstallmentRates;
   defaultLabelPresetId: LabelPresetId;
   defaultLabelStyleId: LabelStyleId;
@@ -122,16 +223,26 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   storeName: 'Lucca Cell',
   storeTagline: 'Aparelhos Lacrados e Seminovos',
   storePhone: '',
+  storeDocument: '',
+  storeAddress: '',
+  storePixKey: '',
   defaultCondition: 'lacrado',
   defaultStorageGb: 128,
   defaultPaymentMethod: 'pix',
   allowSellerPriceEdit: true,
   requireCustomerOnSale: false,
+  requireCustomerPhoneOnSale: false,
+  allowSellerTradeIn: true,
+  allowSellerReserve: true,
   lowBatteryWarningThreshold: 85,
   lowStockThreshold: 1,
   warrantyDaysLacrado: 365,
   warrantyDaysSeminovo: 90,
+  warrantyTerms: 'Garantia cobre defeitos de hardware. Não cobre queda, tela trincada, oxidação ou mau uso.',
+  whatsappListFooter: 'Aceitamos seu iPhone usado na troca! Parcelamos em até 12x.',
+  debitFeePercent: INFINITEPAY_PRESETS[0].debitFeePercent,
   passCardFeeToCustomer: true,
+  cardFeeCalculationMode: 'infinitepay_repasse',
   installmentRates: { ...DEFAULT_INSTALLMENT_RATES },
   defaultLabelPresetId: '30x20',
   defaultLabelStyleId: 'boutique',
@@ -141,6 +252,24 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   labelPrefix: 'LC',
 };
 
+export interface UserPreferences {
+  defaultTab: 'estoque' | 'relatorios';
+  defaultInventorySort: 'recentes' | 'menor_preco' | 'maior_preco' | 'modelo';
+  defaultConditionFilter: 'todos' | DeviceCondition;
+  showInstallmentPreview: boolean;
+  showImeiOnCards: boolean;
+  autoOpenWarrantyAfterSale: boolean;
+}
+
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  defaultTab: 'estoque',
+  defaultInventorySort: 'recentes',
+  defaultConditionFilter: 'todos',
+  showInstallmentPreview: true,
+  showImeiOnCards: true,
+  autoOpenWarrantyAfterSale: true,
+};
+
 export interface UserAccount {
   uid: string;
   username: string;
@@ -148,6 +277,7 @@ export interface UserAccount {
   displayName: string;
   role: UserRole;
   active: boolean;
+  usernameConfirmed?: boolean;
   createdBy: string;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
