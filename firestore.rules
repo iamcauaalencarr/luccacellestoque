@@ -86,19 +86,34 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidColorVariantItem(item) {
+      return item is map
+        && item.keys().hasAll(['color', 'quantity'])
+        && item.keys().hasOnly(['color', 'quantity'])
+        && item.color is string
+        && item.color.size() >= 2
+        && item.color.size() <= 40
+        && item.quantity is int
+        && item.quantity >= 0
+        && item.quantity <= 500;
+    }
+
     function isValidColorVariants(variants) {
       return variants is list
         && variants.size() >= 1
         && variants.size() <= 12
-        && variants[0] is map
-        && variants[0].keys().hasAll(['color', 'quantity'])
-        && variants[0].keys().hasOnly(['color', 'quantity'])
-        && variants[0].color is string
-        && variants[0].color.size() >= 2
-        && variants[0].color.size() <= 40
-        && variants[0].quantity is int
-        && variants[0].quantity >= 0
-        && variants[0].quantity <= 500;
+        && isValidColorVariantItem(variants[0])
+        && (variants.size() < 2 || isValidColorVariantItem(variants[1]))
+        && (variants.size() < 3 || isValidColorVariantItem(variants[2]))
+        && (variants.size() < 4 || isValidColorVariantItem(variants[3]))
+        && (variants.size() < 5 || isValidColorVariantItem(variants[4]))
+        && (variants.size() < 6 || isValidColorVariantItem(variants[5]))
+        && (variants.size() < 7 || isValidColorVariantItem(variants[6]))
+        && (variants.size() < 8 || isValidColorVariantItem(variants[7]))
+        && (variants.size() < 9 || isValidColorVariantItem(variants[8]))
+        && (variants.size() < 10 || isValidColorVariantItem(variants[9]))
+        && (variants.size() < 11 || isValidColorVariantItem(variants[10]))
+        && (variants.size() < 12 || isValidColorVariantItem(variants[11]));
     }
 
     function isValidReservation(res) {

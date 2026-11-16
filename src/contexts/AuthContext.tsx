@@ -14,6 +14,7 @@ import {
   extractUsername,
   googleProvider,
   handleFirestoreError,
+  logFirestoreError,
   normalizeLoginIdentifier,
   OperationType,
 } from '../firebase';
@@ -72,10 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         existingSnap = await getDoc(userRef);
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+        logFirestoreError(error, OperationType.GET, `users/${user.uid}`);
       }
 
-      if (!existingSnap.exists() && isBootstrappedAdmin) {
+      if (existingSnap && !existingSnap.exists() && isBootstrappedAdmin) {
         const rawName = (user.displayName || '').trim().slice(0, SCHEMA_LIMITS.DISPLAY_NAME_MAX);
         const displayName = rawName.length >= SCHEMA_LIMITS.DISPLAY_NAME_MIN ? rawName : 'Administrador Lucca Cell';
         const username = extractUsername(user.email || 'admin');
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await batch.commit();
         } catch (error) {
-          handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
+          logFirestoreError(error, OperationType.WRITE, `users/${user.uid}`);
         }
       }
 
@@ -133,7 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthReady(true);
         },
         (error) => {
-          handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+          logFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+          setAuthReady(true);
         }
       );
     });

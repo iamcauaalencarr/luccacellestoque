@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, logFirestoreError, OperationType } from './firebase';
 import {
   DEFAULT_STORE_SETTINGS,
   DEFAULT_USER_PREFERENCES,
@@ -149,7 +149,8 @@ function MainShell() {
         setLoadingData(false);
       },
       (err) => {
-        handleFirestoreError(err, OperationType.LIST, 'devices');
+        logFirestoreError(err, OperationType.LIST, 'devices');
+        setLoadingData(false);
       }
     );
 
@@ -169,7 +170,7 @@ function MainShell() {
         );
       },
       (err) => {
-        handleFirestoreError(err, OperationType.LIST, 'sales');
+        logFirestoreError(err, OperationType.LIST, 'sales');
       }
     );
 
@@ -180,7 +181,7 @@ function MainShell() {
         setStaff(snap.docs.map((d) => d.data() as StaffDirectoryMember));
       },
       (err) => {
-        handleFirestoreError(err, OperationType.LIST, 'staffDirectory');
+        logFirestoreError(err, OperationType.LIST, 'staffDirectory');
       }
     );
 
@@ -199,7 +200,7 @@ function MainShell() {
           );
         },
         (err) => {
-          handleFirestoreError(err, OperationType.LIST, 'auditLogs');
+          logFirestoreError(err, OperationType.LIST, 'auditLogs');
         }
       );
     }
@@ -217,7 +218,7 @@ function MainShell() {
         }
       },
       (err) => {
-        handleFirestoreError(err, OperationType.GET, 'settings/store');
+        logFirestoreError(err, OperationType.GET, 'settings/store');
       }
     );
 

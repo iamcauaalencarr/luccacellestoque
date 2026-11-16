@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, deleteUser, signOut } from 'firebase/auth';
 import {
   collection,
   deleteField,
@@ -702,6 +702,7 @@ export async function createStaffUser(
   const email = normalizeLoginIdentifier(username);
 
   const { secondaryAuth, cleanup } = getSecondaryProvisioningAuth();
+  let createdAuthUser: { uid: string; delete: () => Promise<void> } | null = null;
   let newUid = '';
 
   try {
@@ -710,55 +711,68 @@ export async function createStaffUser(
       email,
       input.password
     );
+    createdAuthUser = credential.user;
     newUid = credential.user.uid;
-    await signOut(secondaryAuth);
-  } finally {
-    await cleanup();
-  }
 
-  const userRef = doc(db, 'users', newUid);
-  const directoryRef = doc(db, 'staffDirectory', newUid);
-  const auditRef = doc(collection(db, 'auditLogs'));
-  const batch = writeBatch(db);
+    const userRef = doc(db, 'users', newUid);
+    const directoryRef = doc(db, 'staffDirectory', newUid);
+    const auditRef = doc(collection(db, 'auditLogs'));
+    const batch = writeBatch(db);
 
-  batch.set(userRef, {
-    uid: newUid,
-    username,
-    email,
-    displayName,
-    role: input.role,
-    active: true,
-    createdBy: admin.uid,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+    batch.set(userRef, {
+      uid: newUid,
+      username,
+      email,
+      displayName,
+      role: input.role,
+      active: true,
+      createdBy: admin.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-  batch.set(directoryRef, {
-    uid: newUid,
-    username,
-    displayName,
-    role: input.role,
-    active: true,
-    createdBy: admin.uid,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+    batch.set(directoryRef, {
+      uid: newUid,
+      username,
+      displayName,
+      role: input.role,
+      active: true,
+      createdBy: admin.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-  batch.set(
-    auditRef,
-    buildAuditPayload(
-      admin,
-      'CREATE_USER',
-      newUid,
-      `Criou acesso para ${displayName} (@${username}) como ${input.role === 'admin' ? 'Administrador' : 'Vendedor'}`
-    )
-  );
+    batch.set(
+      auditRef,
+      buildAuditPayload(
+        admin,
+        'CREATE_USER',
+        newUid,
+        `Criou acesso para ${displayName} (@${username}) como ${input.role === 'admin' ? 'Administrador' : 'Vendedor'}`
+      )
+    );
 
-  try {
-    await batch.commit();
+    try {
+      await batch.commit();
+      return newUid;
+    } catch (error) {
+      if (createdAuthUser) {
+        try {
+          await deleteUser(credential.user);
+        } catch (delErr) {
+          console.warn('Falha ao reverter usuário do Auth após erro no Firestore:', delErr);
+        }
+      }
+      handleFirestoreError(error, OperationType.WRITE, `users/${newUid}`);
+    }
     return newUid;
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `users/${newUid}`);
+  } finally {
+    try {
+      await signOut(secondaryAuth);
+    } catch {
+      // ignore
+    }
+    await cleanup();
   }
 }
 

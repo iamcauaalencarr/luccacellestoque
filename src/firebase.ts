@@ -8,22 +8,22 @@ export const INTERNAL_AUTH_DOMAIN = 'luccacell.app';
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const rawDbId = firebaseConfig.firestoreDatabaseId;
+const isAiStudioDb = !rawDbId || rawDbId.startsWith('ai-studio-') || rawDbId === '(default)';
+export const db = isAiStudioDb ? getFirestore(app) : getFirestore(app, rawDbId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export async function testFirestoreConnection(): Promise<void> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    await getDocFromServer(doc(db, 'settings', 'store'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Verifique a configuração do Firebase: cliente offline.');
+      console.warn('Verifique a conexão do Firebase: cliente offline.');
     }
   }
 }
-
-testFirestoreConnection();
 
 export function normalizeLoginIdentifier(usernameOrEmail: string): string {
   const clean = usernameOrEmail.trim().toLowerCase();
@@ -82,11 +82,11 @@ export interface FirestoreErrorInfo {
   };
 }
 
-export function handleFirestoreError(
+export function logFirestoreError(
   error: unknown,
   operationType: OperationType,
   path: string | null
-): never {
+): FirestoreErrorInfo {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -104,6 +104,15 @@ export function handleFirestoreError(
     operationType,
     path,
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.warn(`[Firestore Error - ${operationType} on ${path || 'unknown'}]:`, errInfo.error);
+  return errInfo;
+}
+
+export function handleFirestoreError(
+  error: unknown,
+  operationType: OperationType,
+  path: string | null
+): never {
+  const errInfo = logFirestoreError(error, operationType, path);
   throw new Error(JSON.stringify(errInfo));
 }
