@@ -75,8 +75,20 @@ export function LoginView() {
       await signInWithGoogle();
     } catch (err) {
       const code = (err as { code?: string })?.code || '';
-      if (code !== 'auth/popup-closed-by-user') {
-        setErrorMsg('Falha ao autenticar com o Google. Verifique se pop-ups estão liberados.');
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        // Usuário fechou o popup — sem mensagem
+      } else if (code === 'auth/unauthorized-domain') {
+        setErrorMsg(
+          'Este domínio não está autorizado no Firebase. Adicione-o em Authentication → Domínios autorizados no console do Firebase.'
+        );
+      } else if (code === 'auth/popup-blocked') {
+        setErrorMsg(
+          'Pop-up bloqueado pelo navegador. Libere pop-ups para este site nas configurações do navegador e tente novamente.'
+        );
+      } else if (code === 'auth/network-request-failed') {
+        setErrorMsg('Sem conexão com a internet. Verifique sua rede e tente novamente.');
+      } else {
+        setErrorMsg(`Falha ao autenticar com o Google. (${code || 'erro desconhecido'})`);
       }
     } finally {
       setGoogleLoading(false);
