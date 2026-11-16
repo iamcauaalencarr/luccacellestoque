@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   BarChart3,
   Calculator,
+  CheckCircle2,
   History,
+  Info,
   LogOut,
   Settings,
   Smartphone,
   Users,
+  XCircle,
 } from 'lucide-react';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -233,11 +236,18 @@ function MainShell() {
 
   if (!authReady) {
     return (
-      <div className="min-h-dvh bg-[#09090B] text-white flex flex-col items-center justify-center gap-3 px-4">
+      <div className="min-h-dvh bg-[#09090B] text-white flex flex-col items-center justify-center gap-4 px-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#121216] border border-[#26262E] flex items-center justify-center text-[#D4AF37]">
+          <Smartphone className="w-7 h-7" />
+        </div>
         <span className="font-display text-2xl font-bold tracking-tight">
           Lucca <span className="text-[#D4AF37]">Cell</span>
         </span>
-        <span className="text-xs text-zinc-400">Carregando sistema...</span>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-bounce [animation-delay:0ms]" />
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-bounce [animation-delay:150ms]" />
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#D4AF37] animate-bounce [animation-delay:300ms]" />
+        </div>
       </div>
     );
   }
@@ -395,7 +405,7 @@ function MainShell() {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 lg:pl-64 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:pb-10">
+        <main className="flex-1 lg:pl-64 pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-10">
           <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-7">
           {activeTab === 'estoque' && (
             <InventoryView
@@ -560,20 +570,29 @@ function MainShell() {
 
       {/* Toast Stack */}
       {toasts.length > 0 && (
-        <div className="print:hidden fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-6 right-3.5 left-3.5 sm:left-auto sm:w-96 z-50 space-y-2 pointer-events-none">
+        <div className="print:hidden fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)] lg:bottom-6 right-3.5 left-3.5 sm:left-auto sm:w-[22rem] z-50 space-y-2 pointer-events-none">
           {toasts.map((toast) => (
             <div
               key={toast.id}
               role="status"
-              className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium border shadow-lg ${
+              className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium border shadow-xl flex items-start gap-3 ${
                 toast.type === 'success'
-                  ? 'bg-[#121216] border-[#D4AF37] text-white'
+                  ? 'bg-[#121216] border-[#D4AF37]/60 text-white'
                   : toast.type === 'error'
-                    ? 'bg-red-950/95 border-red-700 text-red-100'
-                    : 'bg-[#121216] border-[#26262E] text-zinc-100'
+                    ? 'bg-red-950/95 border-red-700/80 text-red-100'
+                    : 'bg-[#1A1A20] border-[#26262E] text-zinc-100'
               }`}
             >
-              {toast.text}
+              {toast.type === 'success' && (
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#D4AF37]" />
+              )}
+              {toast.type === 'error' && (
+                <XCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+              )}
+              {toast.type === 'info' && (
+                <Info className="w-4 h-4 shrink-0 mt-0.5 text-zinc-400" />
+              )}
+              <span className="leading-snug">{toast.text}</span>
             </div>
           ))}
         </div>
