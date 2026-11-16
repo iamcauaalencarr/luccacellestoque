@@ -1,0 +1,6 @@
+{
+  "name": "Lucca Cell — Estoque, Vendas e Auditoria",
+  "description": "App web mobile-first para gestão de estoque de aparelhos lacrados e seminovos, controle de vendedores, relatórios de vendas em tempo real e auditoria.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

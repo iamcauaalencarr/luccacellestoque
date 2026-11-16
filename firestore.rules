@@ -1,0 +1,486 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default-Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn()
+        && request.auth.token.email.lower() == 'iamkauanalencar@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function userDocExists(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin()
+        || (isSignedIn()
+          && userDocExists(request.auth.uid)
+          && userDoc(request.auth.uid).role == 'admin'
+          && userDoc(request.auth.uid).active == true);
+    }
+
+    function isActiveStaff() {
+      return isBootstrappedAdmin()
+        || (isSignedIn()
+          && userDocExists(request.auth.uid)
+          && userDoc(request.auth.uid).active == true);
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation Blueprints
+    function isValidUserAccount(data) {
+      return data.keys().hasAll(['uid', 'username', 'email', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'username', 'email', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 3 && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9._\\-]+$')
+        && data.email is string && data.email.size() >= 5 && data.email.size() <= 120
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80
+        && data.role in ['admin', 'vendedor']
+        && data.active is bool
+        && isValidId(data.createdBy)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStaffDirectoryMember(data) {
+      return data.keys().hasAll(['uid', 'username', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'username', 'displayName', 'role', 'active', 'createdBy', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.username is string && data.username.size() >= 3 && data.username.size() <= 50 && data.username.matches('^[a-zA-Z0-9._\\-]+$')
+        && data.displayName is string && data.displayName.size() >= 2 && data.displayName.size() <= 80
+        && data.role in ['admin', 'vendedor']
+        && data.active is bool
+        && isValidId(data.createdBy)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidColorVariants(variants) {
+      return variants is list
+        && variants.size() >= 1
+        && variants.size() <= 12
+        && variants[0] is map
+        && variants[0].keys().hasAll(['color', 'quantity'])
+        && variants[0].keys().hasOnly(['color', 'quantity'])
+        && variants[0].color is string
+        && variants[0].color.size() >= 2
+        && variants[0].color.size() <= 40
+        && variants[0].quantity is int
+        && variants[0].quantity >= 0
+        && variants[0].quantity <= 500;
+    }
+
+    function isValidReservation(res) {
+      return res is map
+        && res.keys().hasAll(['customerName', 'reservedBy', 'reservedByName', 'reservedAt'])
+        && res.keys().hasOnly(['customerName', 'customerPhone', 'depositAmount', 'reservedColor', 'notes', 'reservedBy', 'reservedByName', 'reservedAt'])
+        && res.customerName is string && res.customerName.size() >= 2 && res.customerName.size() <= 80
+        && (!('customerPhone' in res) || (res.customerPhone is string && res.customerPhone.size() <= 30))
+        && (!('depositAmount' in res) || ((res.depositAmount is int || res.depositAmount is float) && res.depositAmount >= 0 && res.depositAmount <= 500000))
+        && (!('reservedColor' in res) || (res.reservedColor is string && res.reservedColor.size() >= 2 && res.reservedColor.size() <= 40))
+        && (!('notes' in res) || (res.notes is string && res.notes.size() <= 200))
+        && isValidId(res.reservedBy)
+        && res.reservedByName is string && res.reservedByName.size() >= 2 && res.reservedByName.size() <= 80
+        && res.reservedAt is timestamp;
+    }
+
+    function isValidDevice(data) {
+      return data.keys().hasAll(['model', 'storageGb', 'batteryHealth', 'color', 'condition', 'price', 'status', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['model', 'storageGb', 'batteryHealth', 'color', 'colorVariants', 'condition', 'price', 'status', 'imei', 'notes', 'tradeInFromSaleId', 'reservation', 'createdBy', 'createdAt', 'updatedAt', 'soldBy', 'soldByName', 'soldAt', 'saleId'])
+        && data.model is string && data.model.size() >= 2 && data.model.size() <= 80
+        && data.storageGb is int && data.storageGb >= 16 && data.storageGb <= 4096
+        && data.batteryHealth is int && data.batteryHealth >= 1 && data.batteryHealth <= 100
+        && data.color is string && data.color.size() >= 2 && data.color.size() <= 40
+        && (!('colorVariants' in data) || (data.condition == 'lacrado' && isValidColorVariants(data.colorVariants)))
+        && data.condition in ['lacrado', 'seminovo']
+        && (data.condition != 'lacrado' || data.batteryHealth == 100)
+        && (data.price is int || data.price is float) && data.price > 0 && data.price <= 500000
+        && data.status in ['disponivel', 'reservado', 'vendido']
+        && (!('imei' in data) || (data.imei is string && data.imei.size() <= 32))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 200))
+        && (!('tradeInFromSaleId' in data) || isValidId(data.tradeInFromSaleId))
+        && (
+          (data.status != 'reservado' && !('reservation' in data))
+          || (data.status == 'reservado' && 'reservation' in data && isValidReservation(data.reservation))
+        )
+        && isValidId(data.createdBy)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && (!('soldBy' in data) || isValidId(data.soldBy))
+        && (!('soldByName' in data) || (data.soldByName is string && data.soldByName.size() >= 2 && data.soldByName.size() <= 80))
+        && (!('soldAt' in data) || data.soldAt is timestamp)
+        && (!('saleId' in data) || isValidId(data.saleId));
+    }
+
+    function isValidPaymentBreakdown(pb, total) {
+      return pb is map
+        && pb.keys().hasAll(['pix', 'credito', 'debito', 'dinheiro'])
+        && pb.keys().hasOnly(['pix', 'credito', 'debito', 'dinheiro'])
+        && (pb.pix is int || pb.pix is float) && pb.pix >= 0 && pb.pix <= 500000
+        && (pb.credito is int || pb.credito is float) && pb.credito >= 0 && pb.credito <= 500000
+        && (pb.debito is int || pb.debito is float) && pb.debito >= 0 && pb.debito <= 500000
+        && (pb.dinheiro is int || pb.dinheiro is float) && pb.dinheiro >= 0 && pb.dinheiro <= 500000
+        && (pb.pix + pb.credito + pb.debito + pb.dinheiro) >= (total - 0.02)
+        && (pb.pix + pb.credito + pb.debito + pb.dinheiro) <= (total + 0.02);
+    }
+
+    function isValidTradeInRecord(ti, salePrice) {
+      return ti is map
+        && ti.keys().hasAll(['deviceId', 'model', 'storageGb', 'batteryHealth', 'color', 'tradeInValue', 'resalePrice'])
+        && ti.keys().hasOnly(['deviceId', 'model', 'storageGb', 'batteryHealth', 'color', 'imei', 'tradeInValue', 'resalePrice'])
+        && isValidId(ti.deviceId)
+        && ti.model is string && ti.model.size() >= 2 && ti.model.size() <= 80
+        && ti.storageGb is int && ti.storageGb >= 16 && ti.storageGb <= 4096
+        && ti.batteryHealth is int && ti.batteryHealth >= 1 && ti.batteryHealth <= 100
+        && ti.color is string && ti.color.size() >= 2 && ti.color.size() <= 40
+        && (!('imei' in ti) || (ti.imei is string && ti.imei.size() <= 32))
+        && (ti.tradeInValue is int || ti.tradeInValue is float) && ti.tradeInValue > 0 && ti.tradeInValue <= salePrice
+        && (ti.resalePrice is int || ti.resalePrice is float) && ti.resalePrice > 0 && ti.resalePrice <= 500000;
+    }
+
+    function saleNetCashDue(data) {
+      return ('tradeIn' in data) ? (data.salePrice - data.tradeIn.tradeInValue) : data.salePrice;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll(['deviceId', 'model', 'storageGb', 'batteryHealth', 'color', 'condition', 'salePrice', 'paymentMethod', 'sellerId', 'sellerName', 'createdAt'])
+        && data.keys().hasOnly(['deviceId', 'model', 'storageGb', 'batteryHealth', 'color', 'condition', 'imei', 'salePrice', 'paymentMethod', 'paymentBreakdown', 'installments', 'cardFeePercent', 'warrantyDays', 'tradeIn', 'customerName', 'customerPhone', 'sellerId', 'sellerName', 'createdAt'])
+        && isValidId(data.deviceId)
+        && data.model is string && data.model.size() >= 2 && data.model.size() <= 80
+        && data.storageGb is int && data.storageGb >= 16 && data.storageGb <= 4096
+        && data.batteryHealth is int && data.batteryHealth >= 1 && data.batteryHealth <= 100
+        && data.color is string && data.color.size() >= 2 && data.color.size() <= 40
+        && data.condition in ['lacrado', 'seminovo']
+        && (!('imei' in data) || (data.imei is string && data.imei.size() <= 32))
+        && (data.salePrice is int || data.salePrice is float) && data.salePrice > 0 && data.salePrice <= 500000
+        && data.paymentMethod in ['pix', 'credito', 'debito', 'dinheiro', 'misto']
+        && (!('tradeIn' in data) || isValidTradeInRecord(data.tradeIn, data.salePrice))
+        && (
+          (data.paymentMethod != 'misto' && !('paymentBreakdown' in data))
+          || (data.paymentMethod == 'misto' && saleNetCashDue(data) > 0 && 'paymentBreakdown' in data && isValidPaymentBreakdown(data.paymentBreakdown, saleNetCashDue(data)))
+        )
+        && (!('installments' in data) || (data.installments is int && data.installments >= 1 && data.installments <= 12))
+        && (!('cardFeePercent' in data) || ((data.cardFeePercent is int || data.cardFeePercent is float) && data.cardFeePercent >= 0 && data.cardFeePercent <= 45))
+        && (!('warrantyDays' in data) || (data.warrantyDays is int && data.warrantyDays >= 0 && data.warrantyDays <= 1095))
+        && (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 80))
+        && (!('customerPhone' in data) || (data.customerPhone is string && data.customerPhone.size() <= 30))
+        && isValidId(data.sellerId)
+        && data.sellerName is string && data.sellerName.size() >= 2 && data.sellerName.size() <= 80
+        && data.createdAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['actorId', 'actorName', 'actorRole', 'action', 'targetId', 'summary', 'createdAt'])
+        && data.keys().hasOnly(['actorId', 'actorName', 'actorRole', 'action', 'targetId', 'summary', 'createdAt'])
+        && isValidId(data.actorId)
+        && data.actorName is string && data.actorName.size() >= 2 && data.actorName.size() <= 80
+        && data.actorRole in ['admin', 'vendedor']
+        && data.action in ['CREATE_DEVICE', 'UPDATE_DEVICE', 'DELETE_DEVICE', 'RESERVE_DEVICE', 'RELEASE_RESERVATION', 'REGISTER_SALE', 'CREATE_USER', 'UPDATE_USER_STATUS', 'UPDATE_SETTINGS']
+        && isValidId(data.targetId)
+        && data.summary is string && data.summary.size() >= 3 && data.summary.size() <= 240
+        && data.createdAt is timestamp;
+    }
+
+    function isValidRateValue(val) {
+      return (val is int || val is float) && val >= 0 && val <= 45;
+    }
+
+    function isValidInstallmentRates(rates) {
+      return rates is map
+        && rates.keys().hasAll(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'])
+        && rates.keys().hasOnly(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'])
+        && isValidRateValue(rates['1'])
+        && isValidRateValue(rates['2'])
+        && isValidRateValue(rates['3'])
+        && isValidRateValue(rates['4'])
+        && isValidRateValue(rates['5'])
+        && isValidRateValue(rates['6'])
+        && isValidRateValue(rates['7'])
+        && isValidRateValue(rates['8'])
+        && isValidRateValue(rates['9'])
+        && isValidRateValue(rates['10'])
+        && isValidRateValue(rates['11'])
+        && isValidRateValue(rates['12']);
+    }
+
+    function isValidStoreSettings(data) {
+      return data.keys().hasAll([
+          'storeName',
+          'storeTagline',
+          'storePhone',
+          'defaultCondition',
+          'defaultStorageGb',
+          'defaultPaymentMethod',
+          'allowSellerPriceEdit',
+          'requireCustomerOnSale',
+          'lowBatteryWarningThreshold',
+          'defaultLabelPresetId',
+          'defaultLabelStyleId',
+          'labelShowStore',
+          'labelShowPrice',
+          'labelShowBarcode',
+          'labelPrefix',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'storeName',
+          'storeTagline',
+          'storePhone',
+          'defaultCondition',
+          'defaultStorageGb',
+          'defaultPaymentMethod',
+          'allowSellerPriceEdit',
+          'requireCustomerOnSale',
+          'lowBatteryWarningThreshold',
+          'lowStockThreshold',
+          'warrantyDaysLacrado',
+          'warrantyDaysSeminovo',
+          'passCardFeeToCustomer',
+          'installmentRates',
+          'defaultLabelPresetId',
+          'defaultLabelStyleId',
+          'labelShowStore',
+          'labelShowPrice',
+          'labelShowBarcode',
+          'labelPrefix',
+          'updatedBy',
+          'updatedAt'
+        ])
+        && data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 40
+        && data.storeTagline is string && data.storeTagline.size() <= 80
+        && data.storePhone is string && data.storePhone.size() <= 30
+        && data.defaultCondition in ['lacrado', 'seminovo']
+        && data.defaultStorageGb is int && data.defaultStorageGb >= 16 && data.defaultStorageGb <= 4096
+        && data.defaultPaymentMethod in ['pix', 'credito', 'debito', 'dinheiro']
+        && data.allowSellerPriceEdit is bool
+        && data.requireCustomerOnSale is bool
+        && data.lowBatteryWarningThreshold is int && data.lowBatteryWarningThreshold >= 50 && data.lowBatteryWarningThreshold <= 95
+        && (!('lowStockThreshold' in data) || (data.lowStockThreshold is int && data.lowStockThreshold >= 0 && data.lowStockThreshold <= 20))
+        && (!('warrantyDaysLacrado' in data) || (data.warrantyDaysLacrado is int && data.warrantyDaysLacrado >= 0 && data.warrantyDaysLacrado <= 1095))
+        && (!('warrantyDaysSeminovo' in data) || (data.warrantyDaysSeminovo is int && data.warrantyDaysSeminovo >= 0 && data.warrantyDaysSeminovo <= 1095))
+        && (!('passCardFeeToCustomer' in data) || data.passCardFeeToCustomer is bool)
+        && (!('installmentRates' in data) || isValidInstallmentRates(data.installmentRates))
+        && data.defaultLabelPresetId in ['30x20', '50x30', '40x30', '60x40', '50x15', '40x12']
+        && data.defaultLabelStyleId in ['boutique', 'vitrine', 'ficha', 'minimal']
+        && data.labelShowStore is bool
+        && data.labelShowPrice is bool
+        && data.labelShowBarcode is bool
+        && data.labelPrefix is string && data.labelPrefix.size() >= 1 && data.labelPrefix.size() <= 6 && data.labelPrefix.matches('^[A-Z0-9]+$')
+        && isValidId(data.updatedBy)
+        && data.updatedBy == request.auth.uid
+        && data.updatedAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    // 1. Private User Accounts (PII isolated)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isValidId(userId)
+        && isAdmin()
+        && isValidUserAccount(incoming())
+        && incoming().uid == userId
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isAdmin()
+        && isValidUserAccount(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 2. Non-PII Staff Directory
+    match /staffDirectory/{userId} {
+      allow get: if isValidId(userId) && isActiveStaff();
+      allow list: if isActiveStaff();
+      allow create: if isValidId(userId)
+        && isAdmin()
+        && isValidStaffDirectoryMember(incoming())
+        && incoming().uid == userId
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isAdmin()
+        && isValidStaffDirectoryMember(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'active', 'displayName', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 3. Smartphone Inventory (Lacrados e Seminovos)
+    match /devices/{deviceId} {
+      allow get: if isValidId(deviceId) && isActiveStaff();
+      allow list: if isActiveStaff();
+      allow create: if isValidId(deviceId)
+        && isValidDevice(incoming())
+        && incoming().status == 'disponivel'
+        && incoming().createdBy == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && !('soldBy' in incoming())
+        && !('soldByName' in incoming())
+        && !('soldAt' in incoming())
+        && !('saleId' in incoming())
+        && (
+          (isAdmin() && !('tradeInFromSaleId' in incoming()))
+          || (
+            isActiveStaff()
+            && incoming().condition == 'seminovo'
+            && 'tradeInFromSaleId' in incoming()
+            && existsAfter(/databases/$(database)/documents/sales/$(incoming().tradeInFromSaleId))
+            && getAfter(/databases/$(database)/documents/sales/$(incoming().tradeInFromSaleId)).data.sellerId == request.auth.uid
+          )
+        );
+      allow update: if isValidId(deviceId)
+        && isActiveStaff()
+        && isValidDevice(incoming())
+        && incoming().createdBy == existing().createdBy
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && existing().status != 'vendido'
+        && (
+          // Action: Admin edits available device attributes before sale
+          (isAdmin()
+            && existing().status == 'disponivel'
+            && incoming().status == 'disponivel'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['model', 'storageGb', 'batteryHealth', 'color', 'colorVariants', 'condition', 'price', 'imei', 'notes', 'updatedAt']))
+          ||
+          // Action: Active staff reserves an available device
+          (existing().status == 'disponivel'
+            && incoming().status == 'reservado'
+            && 'reservation' in incoming()
+            && incoming().reservation.reservedBy == request.auth.uid
+            && incoming().reservation.reservedAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'reservation', 'updatedAt']))
+          ||
+          // Action: Reserver or Admin releases a reservation back to available
+          (existing().status == 'reservado'
+            && (isAdmin() || existing().reservation.reservedBy == request.auth.uid)
+            && incoming().status == 'disponivel'
+            && !('reservation' in incoming())
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'reservation', 'updatedAt']))
+          ||
+          // Action: Atomic sale registration (last/single unit transitions to vendido)
+          ((existing().status == 'disponivel' || (existing().status == 'reservado' && (isAdmin() || existing().reservation.reservedBy == request.auth.uid)))
+            && incoming().status == 'vendido'
+            && incoming().soldBy == request.auth.uid
+            && incoming().soldAt == request.time
+            && 'saleId' in incoming()
+            && existsAfter(/databases/$(database)/documents/sales/$(incoming().saleId))
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'color', 'colorVariants', 'imei', 'reservation', 'soldBy', 'soldByName', 'soldAt', 'saleId', 'updatedAt']))
+          ||
+          // Action: Atomic partial unit decrement on multi-color Lacrado device
+          ((existing().status == 'disponivel' || (existing().status == 'reservado' && (isAdmin() || existing().reservation.reservedBy == request.auth.uid)))
+            && existing().condition == 'lacrado'
+            && 'colorVariants' in existing()
+            && 'colorVariants' in incoming()
+            && incoming().status == 'disponivel'
+            && incoming().soldBy == request.auth.uid
+            && incoming().soldAt == request.time
+            && 'saleId' in incoming()
+            && existsAfter(/databases/$(database)/documents/sales/$(incoming().saleId))
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'color', 'colorVariants', 'reservation', 'soldBy', 'soldByName', 'soldAt', 'saleId', 'updatedAt']))
+        );
+      allow delete: if isValidId(deviceId) && isAdmin() && existing().status == 'disponivel';
+    }
+
+    // 4. Real-Time Sales Ledger
+    match /sales/{saleId} {
+      allow get: if isValidId(saleId) && (isAdmin() || (isActiveStaff() && existing().sellerId == request.auth.uid));
+      allow list: if isAdmin() || (isActiveStaff() && resource.data.sellerId == request.auth.uid);
+      allow create: if isValidId(saleId)
+        && isActiveStaff()
+        && isValidSale(incoming())
+        && incoming().sellerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && exists(/databases/$(database)/documents/devices/$(incoming().deviceId))
+        && (
+          get(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.status == 'disponivel'
+          || (
+            get(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.status == 'reservado'
+            && (isAdmin() || get(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.reservation.reservedBy == request.auth.uid)
+          )
+        )
+        && getAfter(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.saleId == saleId
+        && (
+          getAfter(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.status == 'vendido'
+          || (
+            get(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.condition == 'lacrado'
+            && 'colorVariants' in getAfter(/databases/$(database)/documents/devices/$(incoming().deviceId)).data
+            && getAfter(/databases/$(database)/documents/devices/$(incoming().deviceId)).data.status == 'disponivel'
+          )
+        )
+        && (
+          !('tradeIn' in incoming())
+          || (
+            existsAfter(/databases/$(database)/documents/devices/$(incoming().tradeIn.deviceId))
+            && getAfter(/databases/$(database)/documents/devices/$(incoming().tradeIn.deviceId)).data.tradeInFromSaleId == saleId
+          )
+        );
+      allow update, delete: if false;
+    }
+
+    // 5. Append-Only Audit Log
+    match /auditLogs/{logId} {
+      allow get: if isValidId(logId) && isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(logId)
+        && isActiveStaff()
+        && isValidAuditLog(incoming())
+        && incoming().actorId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // 6. Store & App Settings (/settings/store)
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId) && settingId == 'store' && isActiveStaff();
+      allow list: if false;
+      allow create, update: if isValidId(settingId)
+        && settingId == 'store'
+        && isAdmin()
+        && isValidStoreSettings(incoming());
+      allow delete: if false;
+    }
+  }
+}

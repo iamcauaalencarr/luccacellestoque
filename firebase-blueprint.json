@@ -1,0 +1,541 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Private staff account record containing login identity, role, and activation status.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Firebase Auth UID"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9._\\-]+$",
+          "description": "Login username created by Admin"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 120,
+          "description": "Authentication email address"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Full display name of seller or admin"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "vendedor"],
+          "description": "Access control role"
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether account is currently enabled"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID of admin who provisioned this user"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update server timestamp"
+        }
+      },
+      "required": [
+        "uid",
+        "username",
+        "email",
+        "displayName",
+        "role",
+        "active",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StaffDirectoryMember": {
+      "title": "StaffDirectoryMember",
+      "description": "Non-PII staff directory entry for seller attribution and team visibility.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 50,
+          "pattern": "^[a-zA-Z0-9._\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "vendedor"]
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "username",
+        "displayName",
+        "role",
+        "active",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Device": {
+      "title": "Device",
+      "description": "Smartphone inventory item (sealed or pre-owned) with hardware specs and pricing.",
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80,
+          "description": "Device model name"
+        },
+        "storageGb": {
+          "type": "integer",
+          "description": "Storage capacity in GB (e.g., 64, 128, 256, 512, 1024)"
+        },
+        "batteryHealth": {
+          "type": "integer",
+          "description": "Battery health percentage (1-100; 100 for lacrado)"
+        },
+        "color": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Primary device color finish"
+        },
+        "colorVariants": {
+          "type": "array",
+          "description": "Color options with stock quantities for sealed (lacrado) devices"
+        },
+        "condition": {
+          "type": "string",
+          "enum": ["lacrado", "seminovo"],
+          "description": "Sealed or pre-owned condition"
+        },
+        "price": {
+          "type": "number",
+          "description": "Selling price in BRL"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["disponivel", "reservado", "vendido"],
+          "description": "Current inventory availability"
+        },
+        "imei": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Optional IMEI or serial number"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional identifier or notes"
+        },
+        "tradeInFromSaleId": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Origin sale ID when created from a customer trade-in"
+        },
+        "reservation": {
+          "type": "object",
+          "description": "Active reservation details when status is reservado"
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "soldBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "soldByName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "soldAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "saleId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "model",
+        "storageGb",
+        "batteryHealth",
+        "color",
+        "condition",
+        "price",
+        "status",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Immutable sale transaction linked to a device and seller.",
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "storageGb": {
+          "type": "integer"
+        },
+        "batteryHealth": {
+          "type": "integer"
+        },
+        "color": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "condition": {
+          "type": "string",
+          "enum": ["lacrado", "seminovo"]
+        },
+        "imei": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "salePrice": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["pix", "credito", "debito", "dinheiro", "misto"]
+        },
+        "paymentBreakdown": {
+          "type": "object",
+          "description": "Split amounts (pix, credito, debito, dinheiro) required when paymentMethod is 'misto'."
+        },
+        "installments": {
+          "type": "integer",
+          "description": "Credit card installment count (1-12)"
+        },
+        "cardFeePercent": {
+          "type": "number",
+          "description": "Applied card fee percentage"
+        },
+        "warrantyDays": {
+          "type": "integer",
+          "description": "Warranty duration in days"
+        },
+        "tradeIn": {
+          "type": "object",
+          "description": "Optional trade-in smartphone deducted from sale total"
+        },
+        "customerName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "customerPhone": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "sellerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "deviceId",
+        "model",
+        "storageGb",
+        "batteryHealth",
+        "color",
+        "condition",
+        "salePrice",
+        "paymentMethod",
+        "sellerId",
+        "sellerName",
+        "createdAt"
+      ]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only security and operational audit event.",
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["admin", "vendedor"]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "CREATE_DEVICE",
+            "UPDATE_DEVICE",
+            "DELETE_DEVICE",
+            "RESERVE_DEVICE",
+            "RELEASE_RESERVATION",
+            "REGISTER_SALE",
+            "CREATE_USER",
+            "UPDATE_USER_STATUS",
+            "UPDATE_SETTINGS"
+          ]
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 240
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "actorId",
+        "actorName",
+        "actorRole",
+        "action",
+        "targetId",
+        "summary",
+        "createdAt"
+      ]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global Lucca Cell store configuration for identity, stock/sales rules, installments, warranty, and NIIMBOT thermal labels.",
+      "type": "object",
+      "properties": {
+        "storeName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "storeTagline": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "storePhone": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "defaultCondition": {
+          "type": "string",
+          "enum": ["lacrado", "seminovo"]
+        },
+        "defaultStorageGb": {
+          "type": "integer"
+        },
+        "defaultPaymentMethod": {
+          "type": "string",
+          "enum": ["pix", "credito", "debito", "dinheiro"]
+        },
+        "allowSellerPriceEdit": {
+          "type": "boolean"
+        },
+        "requireCustomerOnSale": {
+          "type": "boolean"
+        },
+        "lowBatteryWarningThreshold": {
+          "type": "integer"
+        },
+        "lowStockThreshold": {
+          "type": "integer"
+        },
+        "warrantyDaysLacrado": {
+          "type": "integer"
+        },
+        "warrantyDaysSeminovo": {
+          "type": "integer"
+        },
+        "passCardFeeToCustomer": {
+          "type": "boolean"
+        },
+        "installmentRates": {
+          "type": "object",
+          "description": "Credit card fee percentages for 1x through 12x"
+        },
+        "defaultLabelPresetId": {
+          "type": "string",
+          "enum": ["30x20", "50x30", "40x30", "60x40", "50x15", "40x12"]
+        },
+        "defaultLabelStyleId": {
+          "type": "string",
+          "enum": ["boutique", "vitrine", "ficha", "minimal"]
+        },
+        "labelShowStore": {
+          "type": "boolean"
+        },
+        "labelShowPrice": {
+          "type": "boolean"
+        },
+        "labelShowBarcode": {
+          "type": "boolean"
+        },
+        "labelPrefix": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 6,
+          "pattern": "^[A-Z0-9]+$"
+        },
+        "updatedBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "storeName",
+        "storeTagline",
+        "storePhone",
+        "defaultCondition",
+        "defaultStorageGb",
+        "defaultPaymentMethod",
+        "allowSellerPriceEdit",
+        "requireCustomerOnSale",
+        "lowBatteryWarningThreshold",
+        "defaultLabelPresetId",
+        "defaultLabelStyleId",
+        "labelShowStore",
+        "labelShowPrice",
+        "labelShowBarcode",
+        "labelPrefix",
+        "updatedBy",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserAccount"
+      },
+      "description": "Private staff account records with email, role, and active access status."
+    },
+    "/staffDirectory/{userId}": {
+      "schema": {
+        "$ref": "#/entities/StaffDirectoryMember"
+      },
+      "description": "Non-PII staff directory for seller attribution and team management."
+    },
+    "/devices/{deviceId}": {
+      "schema": {
+        "$ref": "#/entities/Device"
+      },
+      "description": "Lucca Cell smartphone inventory (sealed and pre-owned devices)."
+    },
+    "/sales/{saleId}": {
+      "schema": {
+        "$ref": "#/entities/Sale"
+      },
+      "description": "Real-time sales records attributed to individual sellers."
+    },
+    "/auditLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/AuditLog"
+      },
+      "description": "Immutable activity audit trail for compliance and access monitoring."
+    },
+    "/settings/{settingId}": {
+      "schema": {
+        "$ref": "#/entities/StoreSettings"
+      },
+      "description": "Central store settings document (/settings/store) readable by active staff and writable only by admins."
+    }
+  }
+}
