@@ -94,26 +94,33 @@ export function getCardBrandRates(
   const visaRates = baseRates || DEFAULT_INSTALLMENT_RATES;
   if (brand === 'visa') return visaRates;
 
-  // Verifica se as taxas configuradas batem com algum preset Visa da InfinitePay
-  const tierIndex = INFINITEPAY_PRESETS.slice(0, 4).findIndex((preset) => {
-    return (['1', '6', '12'] as const).every(
-      (k) => Math.abs(Number(visaRates[k] ?? 0) - preset.installmentRates[k]) < 0.15
-    );
-  });
+  // Localiza a faixa correspondente na tabela da InfinitePay (comparando 12x e 1x)
+  const currentRate12 = Number(visaRates['12'] ?? 12.4);
+  let bestTierIdx = 0;
+  let minDiff = 999;
 
-  if (tierIndex !== -1 && INFINITEPAY_PRESETS[tierIndex + 4]) {
-    return INFINITEPAY_PRESETS[tierIndex + 4].installmentRates;
+  for (let i = 0; i < 4; i++) {
+    const diff = Math.abs(currentRate12 - INFINITEPAY_PRESETS[i].installmentRates['12']);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestTierIdx = i;
+    }
   }
 
-  // Se forem taxas personalizadas pelo lojista, aplica a diferença oficial da Elo
+  // Se a taxa for muito próxima de um tier oficial da InfinitePay (diferença <= 0.6%)
+  if (minDiff <= 0.6 && INFINITEPAY_PRESETS[bestTierIdx + 4]) {
+    return INFINITEPAY_PRESETS[bestTierIdx + 4].installmentRates;
+  }
+
+  // Se for uma taxa personalizada manual, calcula proporcional com o diferencial da Elo
   const eloRates: Partial<InstallmentRates> = {};
-  const defaultVisa = INFINITEPAY_PRESETS[0].installmentRates;
-  const defaultElo = INFINITEPAY_PRESETS[4].installmentRates;
+  const refVisa = INFINITEPAY_PRESETS[bestTierIdx].installmentRates;
+  const refElo = INFINITEPAY_PRESETS[bestTierIdx + 4].installmentRates;
 
   for (let i = 1; i <= 12; i++) {
     const k = String(i) as InstallmentCountKey;
-    const diff = (defaultElo[k] ?? 0) - (defaultVisa[k] ?? 0);
-    const current = Number(visaRates[k] ?? defaultVisa[k] ?? 0);
+    const diff = (refElo[k] ?? 0) - (refVisa[k] ?? 0);
+    const current = Number(visaRates[k] ?? refVisa[k] ?? 0);
     eloRates[k] = Math.round((current + diff) * 100) / 100;
   }
 
