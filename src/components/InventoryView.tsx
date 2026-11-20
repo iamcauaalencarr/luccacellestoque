@@ -442,7 +442,7 @@ export function InventoryView({
                 key={cond}
                 type="button"
                 onClick={() => setConditionFilter(cond)}
-                className={`min-h-[40px] px-2.5 sm:px-3.5 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+                className={`min-h-[40px] px-2.5 sm:px-3.5 rounded-lg text-xs font-semibold transition-colors truncate ${
                   conditionFilter === cond
                     ? 'bg-[#D4AF37] text-black'
                     : 'text-zinc-400 hover:text-white'
@@ -453,11 +453,11 @@ export function InventoryView({
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-1 p-1 bg-[#121216] border border-[#26262E] rounded-xl md:w-auto shrink-0">
+          <div className="flex gap-1 p-1 bg-[#121216] border border-[#26262E] rounded-xl md:w-auto shrink-0 overflow-x-auto [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setStatusFilter('disponivel')}
-              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'disponivel'
                   ? 'bg-white text-black'
                   : 'text-zinc-400 hover:text-white'
@@ -468,7 +468,7 @@ export function InventoryView({
             <button
               type="button"
               onClick={() => setStatusFilter('reservado')}
-              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'reservado'
                   ? 'bg-[#D4AF37] text-black'
                   : 'text-zinc-400 hover:text-white'
@@ -479,7 +479,7 @@ export function InventoryView({
             <button
               type="button"
               onClick={() => setStatusFilter('vendido')}
-              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap ${
+              className={`min-h-[40px] px-2 sm:px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
                 statusFilter === 'vendido'
                   ? 'bg-white text-black'
                   : 'text-zinc-400 hover:text-white'

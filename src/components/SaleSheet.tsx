@@ -31,6 +31,7 @@ import {
   formatStorage,
   formatTitleName,
   getAvailableColorVariants,
+  getCardBrandRates,
   PAYMENT_LABELS,
 } from '../utils/formatters';
 import { DeviceThumbnail } from './DeviceThumbnail';
@@ -79,6 +80,7 @@ export function SaleSheet({
 
   // Installments
   const [installments, setInstallments] = useState<number>(1);
+  const [cardBrand, setCardBrand] = useState<'visa' | 'elo'>('visa');
 
   // Trade-In
   const [hasTradeIn, setHasTradeIn] = useState(false);
@@ -193,19 +195,24 @@ export function SaleSheet({
     return 0;
   }, [paymentMethod, netCashDue, splitMethod1, splitMethod2, val1, val2]);
 
+  const activeRates = useMemo(
+    () => getCardBrandRates(settings.installmentRates, cardBrand),
+    [settings.installmentRates, cardBrand]
+  );
+
   const installmentPreview = useMemo(
     () =>
       calculateInstallment(
         creditBaseAmount,
         installments,
-        settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
+        activeRates,
         settings.passCardFeeToCustomer,
         settings.cardFeeCalculationMode || 'infinitepay_repasse'
       ),
     [
       creditBaseAmount,
       installments,
-      settings.installmentRates,
+      activeRates,
       settings.passCardFeeToCustomer,
       settings.cardFeeCalculationMode,
     ]
@@ -289,11 +296,14 @@ export function SaleSheet({
 
   const handleApplyCardFeeToTotal = () => {
     if (!canEditPrice || paymentMethod !== 'credito') return;
-    const baseNet = netCashDue;
+    // Usa o preço ORIGINAL do aparelho como base (sem taxa acumulada)
+    const originalPrice = device?.price ?? 0;
+    if (originalPrice <= 0) return;
+    const baseNet = Math.max(0, originalPrice - parsedTradeInValue);
     const { totalWithFee } = calculateInstallment(
       baseNet,
       installments,
-      settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
+      activeRates,
       true,
       settings.cardFeeCalculationMode || 'infinitepay_repasse'
     );
@@ -1024,8 +1034,34 @@ export function SaleSheet({
                         Parcelamento no Crédito
                       </span>
                       <span className="font-mono-tabular text-[11px] text-zinc-400">
-                        Taxa {installmentPreview.ratePercent.toFixed(2)}%
+                        Taxa {installmentPreview.ratePercent.toFixed(2)}% ({cardBrand === 'elo' ? 'Elo' : 'Visa/MC'})
                       </span>
+                    </div>
+
+                    {/* Escolha da bandeira: Visa ou Elo */}
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#121216] border border-[#26262E] rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setCardBrand('visa')}
+                        className={`min-h-[34px] px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                          cardBrand === 'visa'
+                            ? 'bg-[#D4AF37] text-black shadow-sm'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        Visa / Mastercard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCardBrand('elo')}
+                        className={`min-h-[34px] px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                          cardBrand === 'elo'
+                            ? 'bg-[#D4AF37] text-black shadow-sm'
+                            : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        Elo
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-6 gap-1">

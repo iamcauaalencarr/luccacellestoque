@@ -36,7 +36,7 @@ export type InstallmentRates = Record<InstallmentCountKey, number>;
 export type CardFeeCalculationMode = 'infinitepay_repasse' | 'simple_markup';
 
 export interface InfinitePayTierPreset {
-  id: 'up_to_20k' | '20k_to_40k' | '40k_to_80k' | 'above_80k';
+  id: 'up_to_20k' | '20k_to_40k' | '40k_to_80k' | 'above_80k' | 'elo_up_to_20k' | 'elo_20k_to_40k' | 'elo_40k_to_80k' | 'elo_above_80k';
   label: string;
   shortLabel: string;
   description: string;
@@ -48,7 +48,7 @@ export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
   {
     id: 'up_to_20k',
     label: 'InfinitePay · Até R$ 20 mil/mês',
-    shortLabel: 'Até 20k',
+    shortLabel: 'Visa/MC · Até 20k',
     description: 'Visa/Mastercard · recebimento em 1 dia útil',
     debitFeePercent: 1.37,
     installmentRates: {
@@ -69,7 +69,7 @@ export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
   {
     id: '20k_to_40k',
     label: 'InfinitePay · R$ 20 mil a 40 mil',
-    shortLabel: '20k–40k',
+    shortLabel: 'Visa/MC · 20k–40k',
     description: 'Visa/Mastercard · recebimento em 1 dia útil',
     debitFeePercent: 0.85,
     installmentRates: {
@@ -90,7 +90,7 @@ export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
   {
     id: '40k_to_80k',
     label: 'InfinitePay · R$ 40 mil a 80 mil',
-    shortLabel: '40k–80k',
+    shortLabel: 'Visa/MC · 40k–80k',
     description: 'Visa/Mastercard · recebimento em 1 dia útil',
     debitFeePercent: 0.79,
     installmentRates: {
@@ -111,7 +111,7 @@ export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
   {
     id: 'above_80k',
     label: 'InfinitePay · Acima de R$ 80 mil',
-    shortLabel: '80k+',
+    shortLabel: 'Visa/MC · 80k+',
     description: 'Visa/Mastercard · recebimento em 1 dia útil',
     debitFeePercent: 0.75,
     installmentRates: {
@@ -127,6 +127,91 @@ export const INFINITEPAY_PRESETS: InfinitePayTierPreset[] = [
       '10': 7.99,
       '11': 8.49,
       '12': 8.99,
+    },
+  },
+  // ── Elo ────────────────────────────────────────────────────────────────────
+  {
+    id: 'elo_up_to_20k',
+    label: 'InfinitePay Elo · Até R$ 20 mil/mês',
+    shortLabel: 'Elo · Até 20k',
+    description: 'Elo · recebimento em 1 dia útil',
+    debitFeePercent: 1.59,
+    installmentRates: {
+      '1': 3.49,
+      '2': 5.79,
+      '3': 6.55,
+      '4': 7.31,
+      '5': 8.06,
+      '6': 8.80,
+      '7': 9.54,
+      '8': 10.27,
+      '9': 10.99,
+      '10': 11.71,
+      '11': 12.42,
+      '12': 13.12,
+    },
+  },
+  {
+    id: 'elo_20k_to_40k',
+    label: 'InfinitePay Elo · R$ 20 mil a 40 mil',
+    shortLabel: 'Elo · 20k–40k',
+    description: 'Elo · recebimento em 1 dia útil',
+    debitFeePercent: 1.05,
+    installmentRates: {
+      '1': 3.19,
+      '2': 4.59,
+      '3': 5.22,
+      '4': 5.85,
+      '5': 6.48,
+      '6': 7.09,
+      '7': 7.71,
+      '8': 8.31,
+      '9': 8.92,
+      '10': 9.51,
+      '11': 10.10,
+      '12': 10.68,
+    },
+  },
+  {
+    id: 'elo_40k_to_80k',
+    label: 'InfinitePay Elo · R$ 40 mil a 80 mil',
+    shortLabel: 'Elo · 40k–80k',
+    description: 'Elo · recebimento em 1 dia útil',
+    debitFeePercent: 0.99,
+    installmentRates: {
+      '1': 3.09,
+      '2': 4.45,
+      '3': 5.04,
+      '4': 5.63,
+      '5': 6.21,
+      '6': 6.78,
+      '7': 7.36,
+      '8': 7.92,
+      '9': 8.48,
+      '10': 9.03,
+      '11': 9.58,
+      '12': 10.12,
+    },
+  },
+  {
+    id: 'elo_above_80k',
+    label: 'InfinitePay Elo · Acima de R$ 80 mil',
+    shortLabel: 'Elo · 80k+',
+    description: 'Elo · recebimento em 1 dia útil',
+    debitFeePercent: 0.95,
+    installmentRates: {
+      '1': 2.99,
+      '2': 4.31,
+      '3': 4.85,
+      '4': 5.40,
+      '5': 5.93,
+      '6': 6.45,
+      '7': 6.99,
+      '8': 7.49,
+      '9': 8.01,
+      '10': 8.51,
+      '11': 9.01,
+      '12': 9.49,
     },
   },
 ];

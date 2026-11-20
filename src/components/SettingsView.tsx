@@ -1387,45 +1387,95 @@ export function SettingsView({
             </div>
 
             {/* InfinitePay Tier Presets */}
-            <div className="rounded-xl bg-[#09090B] border border-[#26262E] p-3 space-y-2">
+            <div className="rounded-xl bg-[#09090B] border border-[#26262E] p-3 space-y-3">
               <span className="block text-[11px] font-medium text-zinc-400">
                 Tabelas InfinitePay por Faturamento Mensal (1 clique)
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {INFINITEPAY_PRESETS.map((preset) => {
-                  const isActivePreset =
-                    Math.abs(Number(draft.debitFeePercent ?? 0) - preset.debitFeePercent) < 0.005 &&
-                    INSTALLMENT_KEYS.every(
-                      (k) =>
-                        Math.abs(
-                          Number(draft.installmentRates?.[k] ?? 0) - preset.installmentRates[k]
-                        ) < 0.005
-                    );
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => handleApplyInfinitePayPreset(preset)}
-                      className={`min-h-[46px] px-2.5 py-1.5 rounded-xl border text-left transition-colors ${
-                        isActivePreset
-                          ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
-                          : 'bg-[#121216] text-zinc-200 border-[#26262E] hover:border-zinc-500'
-                      }`}
-                    >
-                      <span className="block text-xs font-bold leading-tight">
-                        {preset.shortLabel}
-                      </span>
-                      <span
-                        className={`block text-[10px] font-mono-tabular mt-0.5 ${
-                          isActivePreset ? 'text-black/80' : 'text-zinc-400'
+
+              {/* Visa / Mastercard */}
+              <div className="space-y-1.5">
+                <span className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Visa / Mastercard
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {INFINITEPAY_PRESETS.filter((p) => !p.id.startsWith('elo_')).map((preset) => {
+                    const isActivePreset =
+                      Math.abs(Number(draft.debitFeePercent ?? 0) - preset.debitFeePercent) < 0.005 &&
+                      INSTALLMENT_KEYS.every(
+                        (k) =>
+                          Math.abs(
+                            Number(draft.installmentRates?.[k] ?? 0) - preset.installmentRates[k]
+                          ) < 0.005
+                      );
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleApplyInfinitePayPreset(preset)}
+                        className={`min-h-[46px] px-2.5 py-1.5 rounded-xl border text-left transition-colors ${
+                          isActivePreset
+                            ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                            : 'bg-[#121216] text-zinc-200 border-[#26262E] hover:border-zinc-500'
                         }`}
                       >
-                        1x {preset.installmentRates['1'].toFixed(2)}% · 12x{' '}
-                        {preset.installmentRates['12'].toFixed(2)}%
-                      </span>
-                    </button>
-                  );
-                })}
+                        <span className="block text-xs font-bold leading-tight">
+                          {preset.shortLabel}
+                        </span>
+                        <span
+                          className={`block text-[10px] font-mono-tabular mt-0.5 ${
+                            isActivePreset ? 'text-black/80' : 'text-zinc-400'
+                          }`}
+                        >
+                          1x {preset.installmentRates['1'].toFixed(2)}% · 12x{' '}
+                          {preset.installmentRates['12'].toFixed(2)}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Elo */}
+              <div className="space-y-1.5">
+                <span className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  Elo
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {INFINITEPAY_PRESETS.filter((p) => p.id.startsWith('elo_')).map((preset) => {
+                    const isActivePreset =
+                      Math.abs(Number(draft.debitFeePercent ?? 0) - preset.debitFeePercent) < 0.005 &&
+                      INSTALLMENT_KEYS.every(
+                        (k) =>
+                          Math.abs(
+                            Number(draft.installmentRates?.[k] ?? 0) - preset.installmentRates[k]
+                          ) < 0.005
+                      );
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => handleApplyInfinitePayPreset(preset)}
+                        className={`min-h-[46px] px-2.5 py-1.5 rounded-xl border text-left transition-colors ${
+                          isActivePreset
+                            ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                            : 'bg-[#121216] text-zinc-200 border-[#26262E] hover:border-zinc-500'
+                        }`}
+                      >
+                        <span className="block text-xs font-bold leading-tight">
+                          {preset.shortLabel}
+                        </span>
+                        <span
+                          className={`block text-[10px] font-mono-tabular mt-0.5 ${
+                            isActivePreset ? 'text-black/80' : 'text-zinc-400'
+                          }`}
+                        >
+                          1x {preset.installmentRates['1'].toFixed(2)}% · 12x{' '}
+                          {preset.installmentRates['12'].toFixed(2)}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

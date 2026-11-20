@@ -1,14 +1,16 @@
 import type { Timestamp } from 'firebase/firestore';
-import type {
-  AuditAction,
-  CardFeeCalculationMode,
-  ColorVariant,
-  DeviceItem,
-  InstallmentCountKey,
-  InstallmentRates,
-  PaymentBreakdown,
-  PaymentMethod,
-  SinglePaymentMethod,
+import {
+  DEFAULT_INSTALLMENT_RATES,
+  INFINITEPAY_PRESETS,
+  type AuditAction,
+  type CardFeeCalculationMode,
+  type ColorVariant,
+  type DeviceItem,
+  type InstallmentCountKey,
+  type InstallmentRates,
+  type PaymentBreakdown,
+  type PaymentMethod,
+  type SinglePaymentMethod,
 } from '../types';
 
 export function formatBRL(value: number): string {
@@ -83,6 +85,39 @@ export function calculateInstallment(
   }
   const installmentValue = Math.round((totalWithFee / count) * 100) / 100;
   return { count, ratePercent, totalWithFee, installmentValue };
+}
+
+export function getCardBrandRates(
+  baseRates: InstallmentRates | undefined,
+  brand: 'visa' | 'elo'
+): InstallmentRates {
+  const visaRates = baseRates || DEFAULT_INSTALLMENT_RATES;
+  if (brand === 'visa') return visaRates;
+
+  // Verifica se as taxas configuradas batem com algum preset Visa da InfinitePay
+  const tierIndex = INFINITEPAY_PRESETS.slice(0, 4).findIndex((preset) => {
+    return (['1', '6', '12'] as const).every(
+      (k) => Math.abs(Number(visaRates[k] ?? 0) - preset.installmentRates[k]) < 0.15
+    );
+  });
+
+  if (tierIndex !== -1 && INFINITEPAY_PRESETS[tierIndex + 4]) {
+    return INFINITEPAY_PRESETS[tierIndex + 4].installmentRates;
+  }
+
+  // Se forem taxas personalizadas pelo lojista, aplica a diferença oficial da Elo
+  const eloRates: Partial<InstallmentRates> = {};
+  const defaultVisa = INFINITEPAY_PRESETS[0].installmentRates;
+  const defaultElo = INFINITEPAY_PRESETS[4].installmentRates;
+
+  for (let i = 1; i <= 12; i++) {
+    const k = String(i) as InstallmentCountKey;
+    const diff = (defaultElo[k] ?? 0) - (defaultVisa[k] ?? 0);
+    const current = Number(visaRates[k] ?? defaultVisa[k] ?? 0);
+    eloRates[k] = Math.round((current + diff) * 100) / 100;
+  }
+
+  return eloRates as InstallmentRates;
 }
 
 export function getWarrantyInfo(

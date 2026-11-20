@@ -25,6 +25,7 @@ import {
   formatStorage,
   formatTitleName,
   getAvailableColorVariants,
+  getCardBrandRates,
 } from '../utils/formatters';
 import { DeviceThumbnail } from './DeviceThumbnail';
 import { getAppleColorHex } from '../utils/appleImages';
@@ -82,6 +83,7 @@ export function SaleSimulatorSheet({
   // Installment & rate options
   const [selectedInstallment, setSelectedInstallment] = useState<number>(12);
   const [applyCardFee, setApplyCardFee] = useState<boolean>(settings.passCardFeeToCustomer);
+  const [cardBrand, setCardBrand] = useState<'visa' | 'elo'>('visa');
   const [includeFullTableInQuote, setIncludeFullTableInQuote] = useState<boolean>(false);
 
   // Customer info (optional for personalized WhatsApp quote)
@@ -152,7 +154,10 @@ export function SaleSimulatorSheet({
   const downPayment = Math.min(afterTradeIn, parseAmount(downPaymentInput));
   const financedBalance = Math.max(0, Math.round((afterTradeIn - downPayment) * 100) / 100);
 
-  const rates = settings.installmentRates || DEFAULT_INSTALLMENT_RATES;
+  const rates = useMemo(
+    () => getCardBrandRates(settings.installmentRates, cardBrand),
+    [settings.installmentRates, cardBrand]
+  );
   const calcMode = settings.cardFeeCalculationMode || 'infinitepay_repasse';
 
   const installmentRows = useMemo(() => {
@@ -204,8 +209,9 @@ export function SaleSimulatorSheet({
     ];
 
     if (financedBalance > 0) {
+      const brandLabel = cardBrand === 'elo' ? 'Elo' : 'Visa/Mastercard';
       if (includeFullTableInQuote) {
-        lines.push('', `*Simulação no Cartão de Crédito (${formatBRL(financedBalance)}):*`);
+        lines.push('', `*Simulação no Cartão de Crédito (${brandLabel} - ${formatBRL(financedBalance)}):*`);
         for (const row of installmentRows) {
           lines.push(
             `• ${row.count}x de *${formatBRL(row.installmentValue)}* (Total ${formatBRL(row.totalWithFee)})`
@@ -218,7 +224,7 @@ export function SaleSimulatorSheet({
         const p12 = installmentRows[11];
         lines.push(
           '',
-          `*No Cartão de Crédito${downPayment > 0 ? ' (saldo restante)' : ''}:*`,
+          `*No Cartão de Crédito (${brandLabel}${downPayment > 0 ? ' · saldo restante' : ''}):*`,
           selectedInstallment !== 12
             ? `• *${chosenInstallment.count}x de ${formatBRL(chosenInstallment.installmentValue)}* (Total ${formatBRL(chosenInstallment.totalWithFee)})`
             : null,
@@ -580,6 +586,32 @@ export function SaleSimulatorSheet({
                     : `Acréscimo simples sobre ${formatBRL(financedBalance)}.`}
                 </p>
               )}
+
+              {/* Escolha da bandeira: Visa ou Elo */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#121216] border border-[#26262E] rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setCardBrand('visa')}
+                  className={`min-h-[34px] px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                    cardBrand === 'visa'
+                      ? 'bg-[#D4AF37] text-black shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Visa / Mastercard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardBrand('elo')}
+                  className={`min-h-[34px] px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+                    cardBrand === 'elo'
+                      ? 'bg-[#D4AF37] text-black shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Elo
+                </button>
+              </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                 {installmentRows.map((row) => {
