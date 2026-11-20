@@ -15,7 +15,17 @@
 }
 
 @layer base {
-  html,
+  html {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    /* Permite scroll vertical natural no html/body */
+    overflow-x: clip;
+  }
+
   body {
     background-color: var(--bg-canvas);
     color: var(--text-primary);
@@ -23,8 +33,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: contain;
-    overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
+    /* overflow-x separado do overflow-y para não travar scroll */
+    overflow-x: clip;
   }
 
   button,
@@ -78,6 +89,11 @@
 
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch scroll suave no iOS para containers com overflow-y-auto */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom subtle scrollbars */

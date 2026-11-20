@@ -298,7 +298,7 @@ function MainShell() {
 
   return (
     <>
-      <div className="print:hidden min-h-dvh bg-[#09090B] text-white flex flex-col lg:flex-row overflow-x-hidden">
+      <div className="print:hidden min-h-dvh bg-[#09090B] text-white flex flex-col lg:flex-row">
         {/* Desktop Left Sidebar (256px) */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-[#0D0D11] border-r border-[#26262E] p-5 justify-between z-30">
           <div className="space-y-7">

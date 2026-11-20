@@ -138,9 +138,8 @@ async function getOrCreateUser(displayName, username, role) {
 }
 
 async function gerarLinkPrimeiroAcesso(email) {
-  const link = await auth.generatePasswordResetLink(email, {
-    url: 'https://luccacellestoque.vercel.app', // redireciona após trocar a senha
-  });
+  // Sem actionCodeSettings para evitar restrição de domínio
+  const link = await auth.generatePasswordResetLink(email);
   return link;
 }
 
