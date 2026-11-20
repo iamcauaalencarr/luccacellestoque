@@ -158,7 +158,7 @@ export function SaleSimulatorSheet({
     () => getCardBrandRates(settings.installmentRates, cardBrand),
     [settings.installmentRates, cardBrand]
   );
-  const calcMode = settings.cardFeeCalculationMode || 'infinitepay_repasse';
+  const calcMode = settings.cardFeeCalculationMode || 'simple_markup';
 
   const installmentRows = useMemo(() => {
     return Array.from({ length: 12 }, (_, idx) => {

@@ -207,7 +207,7 @@ export function SaleSheet({
         installments,
         activeRates,
         settings.passCardFeeToCustomer,
-        settings.cardFeeCalculationMode || 'infinitepay_repasse'
+        settings.cardFeeCalculationMode || 'simple_markup'
       ),
     [
       creditBaseAmount,
@@ -305,7 +305,7 @@ export function SaleSheet({
       installments,
       activeRates,
       true,
-      settings.cardFeeCalculationMode || 'infinitepay_repasse'
+      settings.cardFeeCalculationMode || 'simple_markup'
     );
     const nextGross = Math.round((totalWithFee + parsedTradeInValue) * 100) / 100;
     setSalePrice(nextGross.toFixed(2));

@@ -335,7 +335,7 @@ export function SettingsView({
     setDraft((prev) => ({
       ...prev,
       debitFeePercent: DEFAULT_STORE_SETTINGS.debitFeePercent,
-      cardFeeCalculationMode: 'infinitepay_repasse',
+      cardFeeCalculationMode: 'simple_markup',
       installmentRates: { ...DEFAULT_INSTALLMENT_RATES },
     }));
     onNotify('info', 'Tabela InfinitePay padrão restaurada no rascunho.');
@@ -346,7 +346,6 @@ export function SettingsView({
     setDraft((prev) => ({
       ...prev,
       debitFeePercent: preset.debitFeePercent,
-      cardFeeCalculationMode: 'infinitepay_repasse',
       installmentRates: { ...preset.installmentRates },
     }));
     onNotify(

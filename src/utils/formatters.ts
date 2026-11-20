@@ -65,7 +65,7 @@ export function calculateInstallment(
   installmentsCount: number,
   rates: InstallmentRates,
   passFeeToCustomer: boolean,
-  mode: CardFeeCalculationMode = 'infinitepay_repasse'
+  mode: CardFeeCalculationMode = 'simple_markup'
 ): {
   count: number;
   ratePercent: number;

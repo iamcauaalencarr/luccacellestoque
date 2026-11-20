@@ -45,7 +45,7 @@ function formatDeviceWhatsAppLine(
         12,
         settings.installmentRates,
         settings.passCardFeeToCustomer,
-        settings.cardFeeCalculationMode || 'infinitepay_repasse'
+        settings.cardFeeCalculationMode || 'simple_markup'
       )
     : null;
   const instSuffix = inst ? `\n  ou 12x de ${formatBRL(inst.installmentValue)}` : '';

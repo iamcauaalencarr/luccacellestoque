@@ -213,7 +213,7 @@ export function InventoryView({
       12,
       settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
       settings.passCardFeeToCustomer,
-      settings.cardFeeCalculationMode || 'infinitepay_repasse'
+      settings.cardFeeCalculationMode || 'simple_markup'
     );
     const lines = [
       `*${formatTitleName(settings.storeName)}*`,
@@ -556,7 +556,7 @@ export function InventoryView({
               12,
               settings.installmentRates || DEFAULT_INSTALLMENT_RATES,
               settings.passCardFeeToCustomer,
-              settings.cardFeeCalculationMode || 'infinitepay_repasse'
+              settings.cardFeeCalculationMode || 'simple_markup'
             );
             const canFinalizeReserved =
               isReserved &&

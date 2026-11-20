@@ -327,7 +327,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   whatsappListFooter: 'Aceitamos seu iPhone usado na troca! Parcelamos em até 12x.',
   debitFeePercent: INFINITEPAY_PRESETS[0].debitFeePercent,
   passCardFeeToCustomer: true,
-  cardFeeCalculationMode: 'infinitepay_repasse',
+  cardFeeCalculationMode: 'simple_markup',
   installmentRates: { ...DEFAULT_INSTALLMENT_RATES },
   defaultLabelPresetId: '30x20',
   defaultLabelStyleId: 'boutique',

@@ -981,9 +981,9 @@ export async function saveStoreSettings(
     debitFeePercent,
     passCardFeeToCustomer: Boolean(input.passCardFeeToCustomer),
     cardFeeCalculationMode:
-      input.cardFeeCalculationMode === 'simple_markup'
-        ? 'simple_markup'
-        : 'infinitepay_repasse',
+      input.cardFeeCalculationMode === 'infinitepay_repasse'
+        ? 'infinitepay_repasse'
+        : 'simple_markup',
     installmentRates,
     defaultLabelPresetId: input.defaultLabelPresetId,
     defaultLabelStyleId: input.defaultLabelStyleId,
